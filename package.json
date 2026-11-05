@@ -1,0 +1,32 @@
+{
+  "name": "@calvin-llc/skills",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Calvin-LLC agent skills collection (Harden, WCAG 2.2 AA, and Pi workflow skills) for Claude Code, Pi, OMP, and Hermes",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Calvin-LLC/skills.git"
+  },
+  "keywords": [
+    "pi-package",
+    "agent-skills",
+    "claude-code",
+    "omp",
+    "hermes",
+    "security",
+    "owasp",
+    "wcag",
+    "accessibility"
+  ],
+  "pi": {
+    "skills": [
+      "./skills"
+    ]
+  },
+  "omp": {
+    "skills": [
+      "./skills"
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "calvin-skills",
+  "owner": {
+    "name": "Calvin-LLC"
+  },
+  "plugins": [
+    {
+      "name": "calvin-skills",
+      "source": "./",
+      "description": "Calvin-LLC agent skills collection (harden, wcag, and custom skills)"
+    }
+  ]
+}
