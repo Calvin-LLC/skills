@@ -1,0 +1,13 @@
+# Publishing data to a shared repo
+
+Read before committing or pushing a file that carries credentials, sessions, or a database.
+
+Such a file is a one-way door even in a private repo. Check `gh repo view --json isPrivate` and list readers with `gh api repos/{owner}/{repo}/collaborators --jq '.[].login'`, state the exposure plainly (who can read it, and whether the sealing key is itself committed), and take one explicit choice from the user. That choice covers the run; do not re-ask.
+
+- **Put it where the team will look.** "Share it on GitHub" means a tracked file in the repo (for example `shared/<name>.db.gz`), not a release asset: a release is invisible on the Code tab and adds a second path to learn. Pick the obvious location first and give the trade-off (history growth) in one line; do not take the harder route unasked.
+- **One command each way.** A publisher (snapshot into the tracked path, refuse a public repo, no commit) and a loader (check the sealing key matches and write nothing on a mismatch, replace the data, then fix whatever the data does not carry, such as the sign-in password). Hand the user the three or four exact lines to send the team, and say plainly whether each tool those lines use is new or pre-existing.
+- **Test the teammate's whole flow before any push.** Run the exact commands from a fresh `git clone` in an isolated environment (ports, project name and volumes all separate), ending in a real login. A loader that only copies the file passes every file-level check and still leaves an instance nobody can sign in to.
+- **The test must be exactly what teammates run.** Do not strip or disable data in the scratch copy: a sanitised run proves a different flow. In a test environment the user has declared fake, real side effects are authorised; state the consequence in the report instead of preventing it. Deviate only for host limits (ports, project name), and name each deviation. A workaround that bypasses the user's own command (a prebuilt image, another network mode) is named as a workaround, and the report says the plain command was not proven on that run.
+- **Pass criteria:** every service running (the full status list, not a hand-picked subset), zero tracebacks in the log, and the restore reaching a terminal state. Wait on health and run state, never on a fixed sleep. After a change that touches boot order or database writers, run the fresh clone more than once: first-boot races do not show on a warm instance.
+- Tear the scratch environment down (containers, volumes, network, image tags, clone) and confirm the live instance is still healthy and unchanged.
+- When the user asked for a recommended step "exactly", do that step without re-asking.
