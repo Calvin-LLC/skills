@@ -1,0 +1,17 @@
+#!/bin/sh
+root="$(git rev-parse --show-toplevel)" || exit 1
+cd "$root" || exit 1
+
+py=
+for candidate in python python3 py; do
+  if command -v "$candidate" >/dev/null 2>&1; then py="$candidate"; break; fi
+done
+if [ -z "$py" ]; then
+  echo "pre-commit: no python on PATH, cannot run scripts/check.py" >&2
+  exit 1
+fi
+
+if ! "$py" scripts/check.py; then
+  echo "pre-commit: scripts/check.py failed. Fix the findings above, then commit again." >&2
+  exit 1
+fi

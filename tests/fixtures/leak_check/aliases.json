@@ -1,0 +1,6 @@
+{
+  "_note": "private-scratch-phrase",
+  "Component A": "WidgetForge",
+  "Component B": ["ledger-sync", {"inner": "Frobnitz"}],
+  "Component C": {"_why": "hidden-note-value", "name": "Gadgetron"}
+}

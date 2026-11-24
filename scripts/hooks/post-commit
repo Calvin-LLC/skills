@@ -1,0 +1,30 @@
+#!/bin/sh
+# Never fails the commit. The installed clone is the only thing this touches.
+branch="$(git symbolic-ref --short -q HEAD)" || exit 0
+[ "$branch" = main ] || exit 0
+root="$(git rev-parse --show-toplevel)" || exit 0
+[ -d "${SKILLS_HOME:-$HOME}/.agents/calvin-skills/.git" ] || exit 0
+
+# Git exports these to hooks; the installer's own git calls must find their repos by path.
+unset GIT_DIR GIT_INDEX_FILE GIT_WORK_TREE GIT_PREFIX
+
+case "$(uname -s)" in
+  MINGW*|MSYS*|CYGWIN*)
+    shell=powershell.exe
+    command -v "$shell" >/dev/null 2>&1 || shell=pwsh
+    out="$("$shell" -NoProfile -ExecutionPolicy Bypass -File "$root/install.ps1" -Source "$root" 2>&1)"
+    ;;
+  *)
+    out="$(sh "$root/install.sh" --source "$root" 2>&1)"
+    ;;
+esac
+status=$?
+
+last="$(printf '%s\n' "$out" | tail -n 1)"
+if [ "$status" -eq 0 ]; then
+  echo "post-commit: $last"
+else
+  echo "post-commit: installer exited $status, the install was not updated." >&2
+  printf '%s\n' "$out" >&2
+fi
+exit 0

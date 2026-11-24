@@ -1,0 +1,5 @@
+# fixture dump
+line 0 of fixture dump, padded to look like real content
+line 1 of fixture dump, padded to look like real content
+line 2 of fixture dump, padded to look like real content
+line 3 of fixture dump, padded to look like real content
