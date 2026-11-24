@@ -1,6 +1,7 @@
 ---
 name: in-your-own-words
 description: "Use for /in-your-own-words, or before starting work whose goal is ambiguous: restate what you think the user's goals are and what problem they're trying to solve."
+disable-model-invocation: true
 ---
 
 Restate in your own words what you think the user's goals are and what problem they're trying to solve.

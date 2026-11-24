@@ -17,6 +17,9 @@ usage: skill_eval.py [--parts reach,loads,behaves] [--models NAME=ID@THINKING,..
 
 --no-rules  run without the always-loaded rules, the state before SOUL.md was linked
 --append    add a file's text to the system prompt, to try a rule or routing line
+Skills come from this checkout's working tree, so an edit is tested before it is committed:
+the installed OMP plugin and the linked copies in ~/.agents and ~/.pi are switched off for
+each run. SOUL.md and rules/ come from the installed clone, which is the last commit on main.
 The last line is the verdict: `OK skill_eval: ...` (exit 0) or `ERROR skill_eval: ...` (exit 2).
 """
 import argparse
@@ -37,6 +40,7 @@ DEFAULT_MODELS = "sonnet=anthropic/claude-sonnet-5-5@high,deepseek=omniroute/cor
 READ_ONLY_TOOLS = "read,grep,glob,find,todo"
 SKILL = re.compile(r"skill://([\w-]+)|([\w-]+)[/\\]+SKILL\.md")
 SUBJECT = re.compile(r"^(feat|fix|docs|refactor|chore|test|perf)(\([\w./-]+\))?: \S.{0,70}$")
+CHECKOUT_ONLY = "skills:\n  enableAgentsUser: false\n  enablePiUser: false\n"
 GIT_ENV = {k: v for k, v in os.environ.items() if k not in ("GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_PREFIX")}
 
 spent = 0.0
@@ -82,7 +86,8 @@ def omp(model, prompt, cwd, a, tools=None, stop_after=None, max_time=150, run_co
     if not exe:
         raise RuntimeError("omp is not on PATH")
     cmd = [exe, "-p", "--mode", "json", "--model", name, "--cwd", cwd, "--no-session", "--no-title",
-           "--max-time", str(max_time), "--max-cost", str(run_cost), "--auto-approve"]
+           "--max-time", str(max_time), "--max-cost", str(run_cost), "--auto-approve",
+           "--no-extensions", "-e", ROOT, "--config", a.overlay]
     if thinking:
         cmd += ["--thinking", thinking]
     if tools == "":
@@ -234,6 +239,9 @@ def main():
     ap.add_argument("--json", default="")
     a = ap.parse_args()
     a.append_text = open(a.append, encoding="utf-8").read() if a.append else ""
+    a.overlay = os.path.join(tempfile.mkdtemp(prefix="skill-eval-"), "checkout-only.yml")
+    with open(a.overlay, "w", encoding="utf-8") as f:
+        f.write(CHECKOUT_ONLY)
     cases = json.load(open(os.path.join(FIXTURES, "cases.json"), encoding="utf-8"))
     only = {k for k in a.only.split(",") if k}
     parts = a.parts.split(",")
@@ -280,6 +288,7 @@ def main():
         return 2
 
     setup = "without the always-loaded rules" if a.no_rules else "current setup"
+    setup += ", skills from this checkout"
     if a.append:
         setup += " + " + os.path.basename(a.append)
     print("setup: %s | models: %s | runs per prompt: %d" % (setup, ", ".join(l for l, _ in models), a.runs))

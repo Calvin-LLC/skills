@@ -6,7 +6,7 @@ Skills live in `skills/<name>/SKILL.md`, with optional `references/` and `script
 
 - `python scripts/check.py` runs every `scripts/check_*.py` and prints PASS, FAIL, ERROR or SKIP for each. `python scripts/check.py skills` runs one. The pre-commit hook and CI run the same command.
 - `powershell -ExecutionPolicy Bypass -File install.ps1 -Source .` (POSIX: `sh install.sh --source .`) fast-forwards the installed clone from this checkout and relinks every harness. The post-commit hook runs it on `main`.
-- `python scripts/skill_eval.py` replays the prompts in `tests/fixtures/skill_eval/cases.json` through OMP with no window, on the models named by `--models`. Per model it prints whether `SOUL.md` reaches a main session and a subagent, which skill each prompt loads next to the one it should, and whether a commit and a bug fix in a throwaway repo follow the rules. It spends model usage, so it is not part of `check.py`; run it after changing a description or `SOUL.md`. `--no-rules` shows the result without `SOUL.md`.
+- `python scripts/skill_eval.py` replays the prompts in `tests/fixtures/skill_eval/cases.json` through OMP with no window, on the models named by `--models`. Per model it prints whether `SOUL.md` reaches a main session and a subagent, which skill each prompt loads next to the one it should, and whether a commit and a bug fix in a throwaway repo follow the rules. It spends model usage, so it is not part of `check.py`; run it after changing a description or `SOUL.md`. `--no-rules` shows the result without `SOUL.md`. It loads skills from this checkout's working tree, with the installed plugin switched off, so it tests an edit before the commit. `SOUL.md` and `rules/` still come from the installed clone, the last commit on `main`.
 
 ## How a change reaches agents
 
@@ -14,9 +14,13 @@ Agents do not load this checkout. Every harness but OMP loads `~/.agents/calvin-
 
 OMP loads skills from its plugin, a copy of the pushed `main`: `omp plugin install github:Calvin-LLC/skills` once, then `omp plugin upgrade @calvin-llc/skills` after each push. A commit that is not pushed has not reached OMP's skills.
 
+The installer still links skills into `~/.agents/skills` and `~/.pi/agent/skills` for other harnesses, and OMP reads both folders unless told otherwise. Keep `skills.enableAgentsUser` and `skills.enablePiUser` set to `false` in OMP (`omp config set <key> false`), and leave `claude` and `codex` out of `enabledProviders`. Otherwise a skill committed but not pushed differs from the plugin's copy and OMP lists it twice, the second time under a namespaced name.
+
 `SOUL.md` reaches a harness only under the file name that harness loads. OMP loads `~/.omp/agent/RULES.md`, in main sessions and subagents, and drops any `AGENTS.md` for subagents. Muse Code loads `AGENTS.md` in its config folder. The installer links `SOUL.md` to both.
 
 `rules/*.md` are OMP stream rules: each one watches a tool call or the reply for a pattern and interrupts with its body as a reminder. The installer links every rule in the clone into `~/.omp/agent/rules/`, so a rule is live in OMP after a commit on `main`. Each rule has must-trigger and must-not-trigger cases in `tests/fixtures/rules/cases.json`.
+
+The plugin carries its own copy of `rules/`. The linked rule wins while both exist. A rule deleted or renamed here loses its link at the commit, and OMP then falls back to the plugin's old copy until the push and `omp plugin upgrade @calvin-llc/skills`. Finish a rule removal with both.
 
 Hooks are enabled per checkout by `git config core.hooksPath scripts/hooks`, which the installer sets when given a source.
 

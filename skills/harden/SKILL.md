@@ -2,6 +2,7 @@
 name: harden
 description: "Use when asked to harden, audit security, run /harden, or review OWASP/SLSA posture: a report-only whole-repo audit of security, supply chain, reliability, and tests. Not for making code more robust; this skill writes no code."
 license: MIT
+disable-model-invocation: true
 ---
 
 # Harden
