@@ -30,6 +30,7 @@ sh install.sh        # Windows: powershell -File install.ps1
 The installer replaces files without asking. Back up your own copies first.
 
 - Both scripts link this repository's `SOUL.md` into each harness under the name that harness loads: `~/.omp/agent/RULES.md` (OMP reads it in main sessions and subagents), `~/.config/muse/AGENTS.md` (Muse Code), and `SOUL.md` in `~/.pi/agent`, `~/.hermes` and `~/.agents`. A file already at one of those paths is replaced.
+- Both scripts link every `rules/*.md` into `~/.omp/agent/rules/`. These are OMP stream rules that interrupt a push without approval, a commit with a body, `git add` of the whole tree, a throwaway file name, a new code comment, and an em dash in a reply. A rule removed from this repository loses its link on the next install.
 - Both scripts delete any folder that has a skill's name in the skill directories before they link the new one. A Muse Code folder that Muse manages is updated through `muse skills update` and `muse skills install`, never deleted.
 - A skill removed from this repository leaves every harness on the next install: both scripts delete its link, and ask Muse Code to uninstall the copy it made from this repository.
 

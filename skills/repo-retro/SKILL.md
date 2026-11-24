@@ -1,6 +1,7 @@
 ---
 name: repo-retro
 description: Use for /repo-retro, a retro of recent agent sessions in a repo (wasted navigation, failed searches, stale docs, command loops), or a count of which skills get used across all projects. Proposes only; edits nothing until approved.
+disable-model-invocation: true
 ---
 # Repo retro
 

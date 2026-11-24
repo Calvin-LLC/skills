@@ -50,7 +50,7 @@ Track every item in your harness's todo list and work each one to the end. A tur
 
 - **Commits:** one line, grouped by outcome and functional area, readable at a glance: `fix(backend): fix beat scheduler config, file event persistence, and api wiring`.
 - **Tests:** an end-to-end run of the real path with every step measured, its expected behaviour mapped first with the `architect` skill. A unit test, a mock test or a test that reads source text pins whatever the code does today, and the next agent reads it as fact. Replace those with an end-to-end run or delete them, and propose the same when asked about a suite.
-- **Comments:** code ships with no comments or docstrings; one outlives the decision and the next agent reads it as fact. The why goes in a doc or an ADR when it needs a home. The `no-comments` skill holds the few verified exceptions: license headers, tooling directives, and a checked note on a constraint the code cannot show.
+- **Comments:** code ships with no comments or docstrings; one outlives the decision and the next agent reads it as fact. The why goes in a doc or an ADR when it needs a home. The `no-comments` skill holds the few verified exceptions.
 - **Understanding:** when behaviour is unclear, write a wiki page or a full control-flow diagram of expected behaviour next to actual behaviour, then close the gap. Draw the diagram as a fenced `mermaid` block: `stateDiagram-v2` for states, `flowchart TD` for flow.
 - **Performance and architecture:** start from a measurement. For an outside review, run `arch-export`.
 

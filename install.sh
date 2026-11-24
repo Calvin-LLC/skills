@@ -183,6 +183,18 @@ if [ -f "${DEST}/SOUL.md" ]; then
   done
 fi
 
+omp_rules="${USER_HOME}/.omp/agent/rules"
+mkdir -p "${omp_rules}"
+for rule in "${DEST}"/rules/*.md; do
+  [ -f "${rule}" ] || continue
+  ln -sfn "${rule}" "${omp_rules}/$(basename "${rule}")"
+done
+for entry in "${omp_rules}"/*; do
+  [ -L "${entry}" ] && [ ! -e "${entry}" ] || continue
+  case "$(readlink "${entry}")" in "${DEST}/rules/"*) rm -f "${entry}" ;; esac
+done
+echo "Linked OMP rules -> ${omp_rules}"
+
 echo ""
 echo "Installed skills:"
 count=0

@@ -1,6 +1,7 @@
 ---
 name: maintain-verification-skill
 description: "Use for /maintain-verification-skill, \"audit the verify skill\", or when the app changed and its verification skill or feature map may have drifted: source readers, one live pass, at most one PR. Not for creating one."
+disable-model-invocation: true
 ---
 
 # Maintain a verification skill

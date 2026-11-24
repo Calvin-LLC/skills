@@ -1,0 +1,56 @@
+{
+  "no-unapproved-push": [
+    {"source": "tool", "tool": "bash", "snippet": "git push origin main", "trigger": true},
+    {"source": "tool", "tool": "bash", "snippet": "{\"command\":\"cd repo && git  push --force\"}", "trigger": true},
+    {"source": "tool", "tool": "bash", "snippet": "git log --oneline", "trigger": false},
+    {"source": "tool", "tool": "bash", "snippet": "git pushd", "trigger": false},
+    {"source": "text", "snippet": "Say the word and I will run git push.", "trigger": false}
+  ],
+  "single-line-commit": [
+    {"source": "tool", "tool": "bash", "snippet": "git commit -m \"feat: add a\" -m \"body\"", "trigger": true},
+    {"source": "tool", "tool": "bash", "snippet": "git commit -F msg.txt", "trigger": true},
+    {"source": "tool", "tool": "bash", "snippet": "git commit --file=msg.txt", "trigger": true},
+    {"source": "tool", "tool": "bash", "snippet": "git commit -m \"feat: add a\n\nbody text\"", "trigger": true},
+    {"source": "tool", "tool": "bash", "snippet": "{\"command\":\"git commit -m \\\"feat: add a\\n\\nbody\\\"\"}", "trigger": true},
+    {"source": "tool", "tool": "bash", "snippet": "git commit -m \"$(cat <<EOF\nfeat: add a\nEOF\n)\"", "trigger": true},
+    {"source": "tool", "tool": "bash", "snippet": "git commit -q -m \"feat: add a thing\"", "trigger": false},
+    {"source": "tool", "tool": "bash", "snippet": "{\"command\":\"git commit -m \\\"feat: add a\\\"\",\"i\":\"Committing with -m once\"}", "trigger": false},
+    {"source": "tool", "tool": "bash", "snippet": "git commit -am \"fix: b\"\ngit status", "trigger": false},
+    {"source": "tool", "tool": "bash", "snippet": "git commit -m \"fix: b\" && git log -1 --format=%s", "trigger": false}
+  ],
+  "no-root-git-add": [
+    {"source": "tool", "tool": "bash", "snippet": "git add .", "trigger": true},
+    {"source": "tool", "tool": "bash", "snippet": "{\"command\":\"git add .\"}", "trigger": true},
+    {"source": "tool", "tool": "bash", "snippet": "git add -A && git commit -m x", "trigger": true},
+    {"source": "tool", "tool": "bash", "snippet": "git add --all", "trigger": true},
+    {"source": "tool", "tool": "bash", "snippet": "git add -A -- src/a.py src/b.py", "trigger": false},
+    {"source": "tool", "tool": "bash", "snippet": "git add -- README.md .gitignore", "trigger": false},
+    {"source": "tool", "tool": "bash", "snippet": "git add ./src/a.py", "trigger": false},
+    {"source": "tool", "tool": "bash", "snippet": "git add .github/workflows/checks.yml", "trigger": false}
+  ],
+  "no-sprawl-files": [
+    {"source": "tool", "tool": "write", "path": "src/report_final.py", "snippet": "x = 1", "trigger": true},
+    {"source": "tool", "tool": "write", "path": "docs/report_v2.md", "snippet": "x", "trigger": true},
+    {"source": "tool", "tool": "write", "path": "src/handler_copy.ts", "snippet": "x", "trigger": true},
+    {"source": "tool", "tool": "write", "path": "src/handler_fixed.ts", "snippet": "x", "trigger": true},
+    {"source": "tool", "tool": "write", "path": "src/report.py", "snippet": "open(\"report_final.py\")", "trigger": false},
+    {"source": "tool", "tool": "write", "path": "src/api_v1/handler.py", "snippet": "x", "trigger": false},
+    {"source": "tool", "tool": "write", "path": "src/copy_values.py", "snippet": "x", "trigger": false},
+    {"source": "tool", "tool": "edit", "path": "src/report_final.py", "snippet": "x", "trigger": false}
+  ],
+  "no-code-comments": [
+    {"source": "tool", "tool": "write", "path": "a.py", "snippet": "x = 1\n# set y to two\ny = 2\n", "trigger": true},
+    {"source": "tool", "tool": "edit", "path": "a.ts", "snippet": "const a = 1;\n  // bump the counter\n", "trigger": true},
+    {"source": "tool", "tool": "write", "path": "a.c", "snippet": "/* helper */\nint x;", "trigger": true},
+    {"source": "tool", "tool": "write", "path": "a.py", "snippet": "#!/usr/bin/env python3\nu = \"http://example.com/#frag\"\nx = 1  # noqa: E501\n", "trigger": false},
+    {"source": "tool", "tool": "write", "path": "a.ts", "snippet": "// eslint-disable-next-line no-console\n// @ts-expect-error upstream type\nconst u = \"https://x.y\";\n", "trigger": false},
+    {"source": "tool", "tool": "write", "path": "a.c", "snippet": "// SPDX-License-Identifier: MIT\n#include <stdio.h>\n// clang-format off\n", "trigger": false},
+    {"source": "tool", "tool": "write", "path": "a.rs", "snippet": "#[derive(Debug)]\nstruct A;\n", "trigger": false},
+    {"source": "tool", "tool": "write", "path": "notes.md", "snippet": "# Heading\n// x\n", "trigger": false}
+  ],
+  "no-em-dash": [
+    {"source": "text", "snippet": "It works \u2014 mostly.", "trigger": true},
+    {"source": "text", "snippet": "It works - mostly, 3\u20134 times.", "trigger": false},
+    {"source": "tool", "tool": "write", "path": "a.md", "snippet": "a \u2014 b", "trigger": false}
+  ]
+}

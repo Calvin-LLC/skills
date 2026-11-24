@@ -204,6 +204,26 @@ if (Test-Path (Join-Path $Dest "SOUL.md")) {
   }
 }
 
+$OmpRules = Join-Path $UserHome ".omp\agent\rules"
+$RulesDir = [IO.Path]::GetFullPath((Join-Path $Dest "rules")) + "\"
+New-Item -ItemType Directory -Force -Path $OmpRules | Out-Null
+if (Test-Path -LiteralPath $RulesDir) {
+  foreach ($Rule in Get-ChildItem -LiteralPath $RulesDir -Filter "*.md" -File) {
+    $RuleLink = Join-Path $OmpRules $Rule.Name
+    Remove-Entry $RuleLink
+    try {
+      New-Item -ItemType SymbolicLink -Path $RuleLink -Target $Rule.FullName | Out-Null
+    } catch {
+      New-Item -ItemType HardLink -Path $RuleLink -Target $Rule.FullName | Out-Null
+    }
+  }
+}
+foreach ($Entry in Get-ChildItem -LiteralPath $OmpRules -Force -Attributes ReparsePoint) {
+  $Target = "$($Entry.Target | Select-Object -First 1)" -replace '^\\\\\?\\', ''
+  if ($Target.StartsWith($RulesDir, [StringComparison]::OrdinalIgnoreCase) -and -not (Test-Path -LiteralPath $Target)) { Remove-Entry $Entry.FullName }
+}
+Write-Host "Linked OMP rules -> $OmpRules"
+
 Write-Host "Invoke a skill: Claude Code/Hermes/Muse Code: /<name> | OMP/Pi: /skill:<name> | Codex: `$<name>"
 $Head = (& git -C $Dest rev-parse --short HEAD).Trim()
 Write-Host "Synced calvin-skills at $Head ($($SkillDirs.Count) skills) -> $Dest"

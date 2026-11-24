@@ -187,6 +187,20 @@ def main():
             elif installed.read_bytes() != wanted:
                 findings.append("%s differs from the clone's SOUL.md" % installed)
 
+    rules_dir = CLONE / "rules"
+    omp_rules = OMP_AGENT / "rules"
+    if OMP_AGENT.is_dir():
+        rules = sorted(rules_dir.glob("*.md")) if rules_dir.is_dir() else []
+        missing = [r.name for r in rules if not (omp_rules / r.name).is_file()]
+        stale = [r.name for r in rules if r.name not in missing and (omp_rules / r.name).read_bytes() != r.read_bytes()]
+        if missing:
+            findings.append("%s lacks %d rules: %s" % (omp_rules, len(missing), short_list(missing)))
+        if stale:
+            findings.append("%s has %d rules that differ from the clone: %s" % (omp_rules, len(stale), short_list(stale)))
+        gone = dangling_links(omp_rules, rules_dir) if omp_rules.is_dir() else []
+        if gone:
+            findings.append("%s links %d rules the clone no longer has: %s" % (omp_rules, len(gone), short_list(gone)))
+
     if findings:
         for finding in findings:
             print(finding)

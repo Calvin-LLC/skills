@@ -6,6 +6,7 @@ description: >-
   AGENTS.md, onboard an agent into a codebase, or find out how a project is
   built and tested. Detects the command surfaces, runs each candidate command
   before writing it down, and never records a fact it did not verify.
+disable-model-invocation: true
 ---
 
 # Init

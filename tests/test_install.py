@@ -26,6 +26,7 @@ STUB_CHECK = "import os, sys\nsys.exit(1 if os.path.exists('BLOCK') else 0)\n"
 SKILL_ROOTS = [".agents/skills", ".claude/skills", ".pi/agent/skills",
                ".hermes/skills", ".config/muse/skills", ".codex/skills"]
 SOUL_LINKS = [".pi/agent/SOUL.md", ".hermes/SOUL.md", ".agents/SOUL.md", ".omp/agent/RULES.md", ".config/muse/AGENTS.md"]
+RULE = "---\ncondition: 'x'\nscope: text\n---\nBody.\n"
 
 
 def forget_readonly(func, path, _exc):
@@ -61,6 +62,7 @@ class InstallTest(unittest.TestCase):
         self.git("config", "commit.gpgsign", "false")
         self.write("skills/alpha/SKILL.md", "---\nname: alpha\ndescription: First.\n---\nBody.\n")
         self.write("SOUL.md", SOUL)
+        self.write("rules/one.md", RULE)
         self.write("scripts/check.py", STUB_CHECK)
         for name in ("install.ps1", "install.sh", "scripts/check_install.py", "scripts/hooks/pre-commit",
                      "scripts/hooks/post-commit"):
@@ -140,6 +142,8 @@ class InstallTest(unittest.TestCase):
             self.assertEqual(os.path.realpath(entry), os.path.realpath(self.clone / "skills" / "alpha"), root)
         for link in SOUL_LINKS:
             self.assertEqual((self.home / link).read_text(encoding="utf-8").replace("\r\n", "\n"), SOUL, link)
+        rule = self.home / ".omp" / "agent" / "rules" / "one.md"
+        self.assertEqual(rule.read_text(encoding="utf-8").replace("\r\n", "\n"), RULE)
 
     def test_check_skips_without_clone(self):
         self.assertVerdict(self.check(), "SKIP", 0)
@@ -228,6 +232,33 @@ class InstallTest(unittest.TestCase):
         soul.write_text("old soul\n", encoding="utf-8")
         self.assertVerdict(self.check(), "FAIL", 1, "SOUL.md differs")
         self.installed()
+        self.assertVerdict(self.check(), "PASS", 0)
+
+    def test_missing_and_stale_rules_fail(self):
+        self.installed()
+        rule = self.home / ".omp" / "agent" / "rules" / "one.md"
+        rule.unlink()
+        self.assertVerdict(self.check(), "FAIL", 1, "lacks 1 rules: one.md")
+        rule.write_text("old rule\n", encoding="utf-8")
+        self.assertVerdict(self.check(), "FAIL", 1, "1 rules that differ from the clone: one.md")
+        self.installed()
+        self.assertVerdict(self.check(), "PASS", 0)
+
+    def test_rule_removed_from_the_repo_leaves_omp(self):
+        self.write("rules/two.md", RULE)
+        self.git("add", "-A")
+        self.assertEqual(self.commit("two", hooks=False).returncode, 0)
+        self.installed()
+        two = self.home / ".omp" / "agent" / "rules" / "two.md"
+        self.assertTrue(two.is_file())
+        self.git("rm", "-q", "rules/two.md")
+        self.assertEqual(self.commit("drop two", hooks=False).returncode, 0)
+        self.git("fetch", "-q", self.source, "main", repo=self.clone)
+        self.git("reset", "-q", "--keep", "FETCH_HEAD", repo=self.clone)
+        self.assertVerdict(self.check(), "FAIL", 1, "links 1 rules the clone no longer has: two.md")
+        self.installed()
+        self.assertFalse(os.path.lexists(two))
+        self.assertTrue((self.home / ".omp" / "agent" / "rules" / "one.md").is_file())
         self.assertVerdict(self.check(), "PASS", 0)
 
     def install_muse_stub(self):

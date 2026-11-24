@@ -35,11 +35,11 @@
     {"id": "docs-3", "kind": "docs", "expect": ["readme-clean"], "also_ok": ["unslop", "declauding", "technical-writing"],
      "prompt": "clean up the README, it reads like ai wrote it"},
 
-    {"id": "prose-1", "kind": "prose", "expect": ["declauding", "unslop"],
+    {"id": "prose-1", "kind": "prose", "expect": ["unslop"],
      "prompt": "write a short cover letter paragraph for a backend role using what this repo shows i can do"},
-    {"id": "prose-2", "kind": "prose", "expect": ["declauding", "unslop"],
+    {"id": "prose-2", "kind": "prose", "expect": ["unslop"],
      "prompt": "make this release note sound human: We are thrilled to announce a pivotal update that seamlessly enhances the checkout experience."},
-    {"id": "prose-3", "kind": "prose", "expect": ["declauding", "unslop"],
+    {"id": "prose-3", "kind": "prose", "expect": ["unslop"],
      "prompt": "write the feature list for the landing page. keep it plain"},
 
     {"id": "ui-1", "kind": "ui", "expect": ["impeccable"],
