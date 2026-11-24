@@ -1,0 +1,6 @@
+{
+  "name": "calvin-skills",
+  "version": "1.0.0",
+  "description": "Calvin-LLC skills collection for OMP (oh-my-pi)",
+  "skills": "./skills/"
+}

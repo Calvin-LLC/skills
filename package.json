@@ -1,0 +1,34 @@
+{
+  "name": "@calvin-llc/skills",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Calvin-LLC agent skills collection (security, accessibility, and workflow skills) for Pi, OMP, Hermes, Muse Code, Claude Code, and Codex",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Calvin-LLC/skills.git"
+  },
+  "keywords": [
+    "pi-package",
+    "agent-skills",
+    "claude-code",
+    "omp",
+    "hermes",
+    "muse-code",
+    "codex",
+    "security",
+    "owasp",
+    "wcag",
+    "accessibility"
+  ],
+  "pi": {
+    "skills": [
+      "./skills"
+    ]
+  },
+  "omp": {
+    "skills": [
+      "./skills"
+    ]
+  }
+}

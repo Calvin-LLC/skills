@@ -1,0 +1,17 @@
+# Line endings are fixed per file type so a script runs on the platform it targets
+# whatever core.autocrlf says on the machine that checked it out.
+* text=auto
+
+# POSIX shell and anything a shebang runs: LF, or the interpreter line breaks.
+*.sh        text eol=lf
+*.py        text eol=lf
+*.mjs       text eol=lf
+*.cjs       text eol=lf
+*.js        text eol=lf
+skills/impeccable/scripts/impeccable text eol=lf
+scripts/hooks/*  text eol=lf
+
+# Windows command scripts: CRLF, or cmd.exe misparses labels and blocks.
+*.cmd       text eol=crlf
+*.bat       text eol=crlf
+*.ps1       text eol=crlf
