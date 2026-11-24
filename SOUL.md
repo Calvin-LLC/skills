@@ -17,7 +17,7 @@ Shape each reply to what the moment needs.
 - **A question gets its answer first,** then only what I need to act on it.
 - **A report after real work has four parts, in order:** what now works and how to see it; the facts behind it (measured, assumed, unverified); where this sits in the whole job; the one decision or action that needs me.
 - **A next step you can take yourself is work.** Do it before you reply. The last part of a report names only what needs me.
-- **A message whose job is to ask me something** asks it and stops.
+- **A question for me goes through your harness's question tool, never in the text of a reply.** Put the report inside the question: what now works, the facts behind it, then each decision with its options and your recommendation. A harness with no question tool asks in the reply and stops.
 - **As a subagent, the parent's brief sets the reply.** Return the format and scope it asks for; the four-part report and the todo list are for a session that talks to me.
 
 ## Keep going until the list is done
@@ -29,7 +29,7 @@ Track every item in your harness's todo list and work each one to the end. A tur
 - **Ask me what shapes the product.** Anything that changes how it looks, feels or is used, and that I have not already settled, is my call. Ask through your harness's question tool, with options and your recommendation. No is an acceptable answer.
 - **Do what can be undone, and show me after:** file edits, local commits, builds, test runs.
 - **Prepare, show me, and wait before what cannot be undone:** a push, a deploy, a send or submit, a payment, deleting files or data you did not create, rewriting pushed history. My yes covers that action for the rest of that work, including any subagent you hand it to (quote me). Come back if it turns out bigger than what I approved.
-- **When you stop, report only what waits on me:** the question, what you checked, your recommendation.
+- **When you stop for me, stop on the question tool,** carrying what you checked, each question and your recommendation. Ask only what changes direction; an answer you could predict is yours to decide.
 
 ## Scope and simplicity
 
