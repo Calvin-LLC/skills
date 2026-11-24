@@ -1,0 +1,79 @@
+{
+  "loads": [
+    {"id": "broken-1", "kind": "broken", "expect": ["diagnosing-bugs"],
+     "prompt": "the cart total is wrong when a coupon and a sale price both apply, and it got worse after yesterdays change. figure out why and fix it"},
+    {"id": "broken-2", "kind": "broken", "expect": ["diagnosing-bugs"],
+     "prompt": "checkout keeps crashing on empty carts and its still broken after the last fix. dig into it"},
+    {"id": "broken-3", "kind": "broken", "expect": ["diagnosing-bugs"],
+     "prompt": "the price page takes like 4 seconds to load now and it used to be instant. what happened"},
+
+    {"id": "ship-1", "kind": "ship", "expect": ["commit"],
+     "prompt": "commit the staged change"},
+    {"id": "ship-2", "kind": "ship", "expect": ["commit", "babysit"],
+     "prompt": "commit this and push it, then make sure the deploy goes through"},
+    {"id": "ship-3", "kind": "ship", "expect": ["commit"],
+     "prompt": "everything is done. commit it so the working tree is clean"},
+
+    {"id": "reshape-1", "kind": "reshape", "expect": ["architect"],
+     "prompt": "pricing and cart both work out discounts and they disagree. i want one place that owns the discount rules, restructure it"},
+    {"id": "reshape-2", "kind": "reshape", "expect": ["architect"],
+     "prompt": "what should we consolidate in this codebase? theres a lot of duplicated logic between files"},
+    {"id": "reshape-3", "kind": "reshape", "expect": ["architect"],
+     "prompt": "add a subscriptions module that cart and pricing both call. it needs its own types and a clean boundary"},
+
+    {"id": "cleanup-1", "kind": "cleanup", "expect": ["tidy"],
+     "prompt": "this repo is a mess, organize it and get rid of the junk files"},
+    {"id": "cleanup-2", "kind": "cleanup", "expect": ["deslop"],
+     "prompt": "audit the code quality here: complexity, dead code, duplicated blocks"},
+    {"id": "cleanup-3", "kind": "cleanup", "expect": ["no-comments"],
+     "prompt": "strip the pointless comments out of app/"},
+
+    {"id": "docs-1", "kind": "docs", "expect": ["readme-clean", "technical-writing"],
+     "prompt": "update the readme so it matches what the code does now"},
+    {"id": "docs-2", "kind": "docs", "expect": ["technical-writing"],
+     "prompt": "write docs for the pricing module"},
+    {"id": "docs-3", "kind": "docs", "expect": ["readme-clean"], "also_ok": ["unslop", "declauding", "technical-writing"],
+     "prompt": "clean up the README, it reads like ai wrote it"},
+
+    {"id": "prose-1", "kind": "prose", "expect": ["declauding", "unslop"],
+     "prompt": "write a short cover letter paragraph for a backend role using what this repo shows i can do"},
+    {"id": "prose-2", "kind": "prose", "expect": ["declauding", "unslop"],
+     "prompt": "make this release note sound human: We are thrilled to announce a pivotal update that seamlessly enhances the checkout experience."},
+    {"id": "prose-3", "kind": "prose", "expect": ["declauding", "unslop"],
+     "prompt": "write the feature list for the landing page. keep it plain"},
+
+    {"id": "ui-1", "kind": "ui", "expect": ["impeccable"],
+     "prompt": "web/index.html looks bad. redesign the layout and typography"},
+    {"id": "ui-2", "kind": "ui", "expect": ["wcag"], "also_ok": ["impeccable"],
+     "prompt": "audit web/index.html for accessibility"},
+    {"id": "ui-3", "kind": "ui", "expect": ["impeccable"],
+     "prompt": "make the checkout form look polished and easy to use"},
+
+    {"id": "review-1", "kind": "outside_review", "expect": ["arch-export"],
+     "prompt": "i want perplexity to review how discounts are structured here. give me something i can paste to it"},
+    {"id": "review-2", "kind": "outside_review", "expect": ["arch-export"],
+     "prompt": "write a sanitized brief of the pricing design for an outside model to review"},
+    {"id": "review-3", "kind": "outside_review", "expect": ["arch-import"],
+     "prompt": "here is what the reviewer said:\n| id | target role | change | expected gain | risk | test | benchmark |\n|---|---|---|---|---|---|---|\n| R1 | Component A | merge the two discount paths into one owner | fewer wrong totals | low | compare totals on 20 carts | none |"},
+
+    {"id": "brief-1", "kind": "brief_names_skill", "expect": ["diagnosing-bugs"],
+     "prompt": "Read the diagnosing-bugs skill first.\nGoal: checkout crashes on an empty cart. Find the cause.\nFiles: app/cart.py and app/pricing.py.\nSend back: the cause in one sentence."},
+    {"id": "brief-2", "kind": "brief_names_skill", "expect": ["architect"],
+     "prompt": "Read the architect skill first.\nGoal: sketch one module that owns the discount rules for cart and pricing.\nFiles: app/cart.py and app/pricing.py.\nSend back: the sketch."},
+
+    {"id": "plain-1", "kind": "plain", "expect": [],
+     "prompt": "what python version does this need?"},
+    {"id": "plain-2", "kind": "plain", "expect": [],
+     "prompt": "list the files in app"},
+    {"id": "plain-3", "kind": "plain", "expect": [],
+     "prompt": "what does the SALE table in app/pricing.py contain?"}
+  ],
+  "behaves": [
+    {"id": "commit-rules", "check": "commit_rules",
+     "prompt": "commit the staged change"},
+    {"id": "fix-and-leave-clean", "check": "fix_clean",
+     "prompt": "the cart total is wrong when a coupon and a sale price both apply. find out why and fix it"},
+    {"id": "fix-with-full-brief", "check": "fix_clean",
+     "prompt": "Goal: the cart total is wrong when a coupon and a sale price both apply. Fix it.\nFiles: app/cart.py and app/pricing.py.\nAlready decided: a coupon applies once, after the sale price.\nMethod: build one command that reproduces the wrong total and note what it prints. Compare each step of the sum with what it should be for a 10.00 mug at 20% off with the WELCOME10 coupon, quantity 2. Change the smallest thing that explains the difference, then run the same command again.\nDone when: python -c \"from app.cart import cart_total; print(cart_total([('mug', 10.0, 2)], 'WELCOME10'))\" prints 14.4.\nSend back: the cause in one sentence and the diff."}
+  ]
+}

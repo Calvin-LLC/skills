@@ -1,0 +1,4 @@
+body { font-family: Arial; color: #999; background: #fff; }
+.title { font-size: 14px; }
+input { display: block; margin: 2px; border: 1px solid #ddd; }
+.btn { background: #ccc; color: #fff; width: 40px; }
