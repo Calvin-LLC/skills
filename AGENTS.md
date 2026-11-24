@@ -10,7 +10,9 @@ Skills live in `skills/<name>/SKILL.md`, with optional `references/` and `script
 
 ## How a change reaches agents
 
-Agents do not load this checkout. Every harness loads `~/.agents/calvin-skills`, a clone that moves only by the installer. Edit here, commit on `main`, and the post-commit hook syncs the clone. Never edit or copy files into the clone. When `check.py install` fails, run the command its FAIL line names; `-Stash` sets a dirty clone aside in a git stash and deletes nothing.
+Agents do not load this checkout. Every harness but OMP loads `~/.agents/calvin-skills`, a clone that moves only by the installer. Edit here, commit on `main`, and the post-commit hook syncs the clone. Never edit or copy files into the clone. When `check.py install` fails, run the command its FAIL line names; `-Stash` sets a dirty clone aside in a git stash and deletes nothing.
+
+OMP loads skills from its plugin, a copy of the pushed `main`: `omp plugin install github:Calvin-LLC/skills` once, then `omp plugin upgrade @calvin-llc/skills` after each push. A commit that is not pushed has not reached OMP's skills.
 
 `SOUL.md` reaches a harness only under the file name that harness loads. OMP loads `~/.omp/agent/RULES.md`, in main sessions and subagents, and drops any `AGENTS.md` for subagents. Muse Code loads `AGENTS.md` in its config folder. The installer links `SOUL.md` to both.
 

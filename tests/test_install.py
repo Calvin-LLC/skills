@@ -23,7 +23,7 @@ elif not WINDOWS and not shutil.which("sh"):
 
 SOUL = "# soul\nkeep it short\n"
 STUB_CHECK = "import os, sys\nsys.exit(1 if os.path.exists('BLOCK') else 0)\n"
-SKILL_ROOTS = [".agents/skills", ".claude/skills", ".pi/agent/skills", ".omp/agent/skills",
+SKILL_ROOTS = [".agents/skills", ".claude/skills", ".pi/agent/skills",
                ".hermes/skills", ".config/muse/skills", ".codex/skills"]
 SOUL_LINKS = [".pi/agent/SOUL.md", ".hermes/SOUL.md", ".agents/SOUL.md", ".omp/agent/RULES.md", ".config/muse/AGENTS.md"]
 

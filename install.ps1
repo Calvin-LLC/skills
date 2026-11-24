@@ -103,7 +103,6 @@ $TargetRoots = @(
   (Join-Path $UserHome ".agents\skills"),
   (Join-Path $UserHome ".claude\skills"),
   (Join-Path $UserHome ".pi\agent\skills"),
-  (Join-Path $UserHome ".omp\agent\skills"),
   (Join-Path $UserHome ".hermes\skills"),
   (Join-Path $UserHome ".config\muse\skills"),
   (Join-Path $UserHome ".codex\skills")
@@ -138,6 +137,16 @@ foreach ($Root in $TargetRoots) {
   }
   Write-Host "Linked all skills -> $Root"
 }
+
+$OmpSkills = Join-Path $UserHome ".omp\agent\skills"
+if (Test-Path -LiteralPath $OmpSkills) {
+  foreach ($Entry in Get-ChildItem -LiteralPath $OmpSkills -Force -Attributes ReparsePoint) {
+    $Target = "$($Entry.Target | Select-Object -First 1)" -replace '^\\\\\?\\', ''
+    if ($Target.StartsWith($SkillsDir, [StringComparison]::OrdinalIgnoreCase)) { Remove-Entry $Entry.FullName }
+  }
+  if (-not (Get-ChildItem -LiteralPath $OmpSkills -Force)) { Remove-Item -LiteralPath $OmpSkills }
+}
+Write-Host "OMP loads skills from its plugin: omp plugin install github:Calvin-LLC/skills, then omp plugin upgrade @calvin-llc/skills after each push"
 
 # Muse Code copies skills into its own folder and tracks them in .muse; only muse may change that folder.
 $Muse = Get-MuseCommand

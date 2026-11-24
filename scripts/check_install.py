@@ -38,7 +38,6 @@ def skill_roots():
         HOME / ".agents" / "skills",
         claude / "skills",
         HOME / ".pi" / "agent" / "skills",
-        OMP_AGENT / "skills",
         HOME / ".hermes" / "skills",
         muse / "skills",
         codex / "skills",

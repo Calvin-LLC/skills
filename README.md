@@ -10,8 +10,9 @@ They work with most harnesses. I've tested them on Pi, Hermes, OMP, Claude Code,
 # Claude Code, Pi, Hermes, and any other agent the skills CLI detects
 npx -y skills add Calvin-LLC/skills -g -y
 
-# OMP
+# OMP (skills come from the plugin; run the upgrade after each push to this repository)
 omp plugin install github:Calvin-LLC/skills
+omp plugin upgrade @calvin-llc/skills
 
 # Muse Code (install as plugin or import from Claude)
 muse plugins install .
@@ -20,11 +21,11 @@ muse skills import --from claude
 # enable a skill (one skill per call):
 muse skills enable <skill-name> --scope user
 
-# Codex, plus every harness above (the script is in this repo)
+# Codex, plus every harness above except OMP's skills (the script is in this repo)
 sh install.sh        # Windows: powershell -File install.ps1
 ```
 
-`install.sh` and `install.ps1` clone this repository to `~/.agents/calvin-skills`, or update the copy there with `git pull --ff-only`. They link every skill into `~/.agents/skills`, `~/.claude/skills`, `~/.pi/agent/skills`, `~/.omp/agent/skills`, `~/.hermes/skills`, `~/.config/muse/skills`, and `~/.codex/skills`. When the `muse` CLI is on `PATH`, they also enable each skill in Muse Code. `install.sh` honors `CLAUDE_CONFIG_DIR`, `MUSE_CONFIG_DIR`, and `CODEX_HOME`. `install.ps1` uses the default paths.
+`install.sh` and `install.ps1` clone this repository to `~/.agents/calvin-skills`, or update the copy there with `git pull --ff-only`. They link every skill into `~/.agents/skills`, `~/.claude/skills`, `~/.pi/agent/skills`, `~/.hermes/skills`, `~/.config/muse/skills`, and `~/.codex/skills`. OMP gets its skills from the plugin, so the scripts remove the links an earlier version made in `~/.omp/agent/skills`. When the `muse` CLI is on `PATH`, they also enable each skill in Muse Code. `install.sh` honors `CLAUDE_CONFIG_DIR`, `MUSE_CONFIG_DIR`, and `CODEX_HOME`. `install.ps1` uses the default paths.
 
 The installer replaces files without asking. Back up your own copies first.
 

@@ -103,7 +103,6 @@ for target_root in \
   "${USER_HOME}/.agents/skills" \
   "${CLAUDE_ROOT}/skills" \
   "${USER_HOME}/.pi/agent/skills" \
-  "${USER_HOME}/.omp/agent/skills" \
   "${USER_HOME}/.hermes/skills" \
   "${MUSE_ROOT}/skills" \
   "${CODEX_ROOT}/skills"
@@ -127,6 +126,14 @@ do
   done
   echo "Linked all skills -> ${target_root}"
 done
+
+omp_skills="${USER_HOME}/.omp/agent/skills"
+for entry in "${omp_skills}"/*; do
+  [ -L "${entry}" ] || continue
+  case "$(readlink "${entry}")" in "${DEST}/skills/"*) rm -f "${entry}" ;; esac
+done
+rmdir "${omp_skills}" 2>/dev/null || true
+echo "OMP loads skills from its plugin: omp plugin install github:Calvin-LLC/skills, then omp plugin upgrade @calvin-llc/skills after each push"
 
 # Muse Code copies skills into its own folder and tracks them in .muse; only muse may change that folder.
 if [ -n "${muse_cmd}" ]; then
