@@ -117,7 +117,9 @@ do
     [ -d "${skill_dir}" ] || continue
     [ -f "${skill_dir}/SKILL.md" ] || continue
     skill_name="$(basename "${skill_dir}")"
-    ln -sfn "${skill_dir}" "${target_root}/${skill_name}"
+    link="${target_root}/${skill_name}"
+    if [ -d "${link}" ] && [ ! -L "${link}" ]; then rm -rf "${link}"; fi
+    ln -sfn "${skill_dir}" "${link}"
   done
   for entry in "${target_root}"/*; do
     [ -L "${entry}" ] && [ ! -e "${entry}" ] || continue

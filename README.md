@@ -29,7 +29,7 @@ sh install.sh        # Windows: powershell -File install.ps1
 The installer replaces files without asking. Back up your own copies first.
 
 - Both scripts link this repository's `SOUL.md` into each harness under the name that harness loads: `~/.omp/agent/RULES.md` (OMP reads it in main sessions and subagents), `~/.config/muse/AGENTS.md` (Muse Code), and `SOUL.md` in `~/.pi/agent`, `~/.hermes` and `~/.agents`. A file already at one of those paths is replaced.
-- `install.ps1` deletes any folder that has a skill's name in the skill directories before it links the new one. A Muse Code folder that Muse manages is updated through `muse skills update` and `muse skills install`, never deleted.
+- Both scripts delete any folder that has a skill's name in the skill directories before they link the new one. A Muse Code folder that Muse manages is updated through `muse skills update` and `muse skills install`, never deleted.
 - A skill removed from this repository leaves every harness on the next install: both scripts delete its link, and ask Muse Code to uninstall the copy it made from this repository.
 
 From a checkout, `install.ps1 -Source .` (`sh install.sh --source .`) updates the installed copy from that checkout's `main` and enables the repository's git hooks. After that, each commit on `main` syncs the installed copy. The installer refuses to update a copy with uncommitted changes; `-Stash` (`--stash`) sets them aside in a git stash first.
