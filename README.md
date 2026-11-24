@@ -52,14 +52,14 @@ The repository holds 40 skills.
 |---|---|
 | `harden` | Report-only audit of a whole repository: security (OWASP Top 10:2025, plus the OWASP LLM and agentic Top 10 when the repository uses them), supply chain, reliability, and tests. Every finding quotes the code with a file:line citation. Built upon [cloudflare/security-audit-skill](https://github.com/cloudflare/security-audit-skill). |
 | `wcag` | Web accessibility audit (WCAG 2.2 A/AA). Runs nine checks on the rendered page in five browser passes and reports violations with selectors, snippets, and recommended fixes. Inspired by Derek Featherstone's course, with initial work credited to [ECC's accessibility skill](https://github.com/affaan-m/ECC/blob/main/skills/accessibility/SKILL.md). |
-| `deslop` | Code hygiene audit against numeric ceilings: CCN < 15, nesting depth < 4, fewer than 5 parameters, file length < 500 LOC, no duplicate clusters, no dead code, no type escapes, and at least 60% line coverage. |
+| `deslop` | Code hygiene audit against numeric ceilings: CCN < 15, nesting depth < 4, fewer than 5 parameters, file length < 500 LOC, no duplicate clusters, no dead code, no type escapes, and the repo's own coverage gate when it has one. |
 | `gemini-vision` | Send a UI screenshot, mockup, diagram, or wireframe to a vision model for a review of layout, hierarchy, readability, and visual bugs. Despite the name it works with any vision model behind an OpenAI-compatible endpoint: OpenAI, Gemini, a gateway, or a local model. Ships `wcag.mjs`, which computes the contrast ratio of a hex color pair. |
 | `reference-mining` | Check whether a reference project already solves a problem, or mine one for mechanisms when improving a target repository. The reference is evidence, and the skill never copies its code. |
 | `arch-export` | Write a sanitized architecture brief that an outside model with no repository access can review. |
 | `arch-import` | Check the outside reviewer's reply against the real code, run the bakeoff locally, apply the cheap safe wins, and end with a decision ledger and build order. |
 | `readme-clean` | Rewrite a README plain and concise, check every claim against the repository, and prove no technical fact was dropped. |
 | `writing-plans` | Write an implementation plan from a specification before touching code. |
-| `commit` | Git commit rules: one major feature per commit on `main`, a 1-2 line message, and no push until the change is proven locally. |
+| `commit` | Git commit rules: one major feature per commit on `main`, a one-line message with no body, and no push until the change is proven locally. |
 | `init` | Build or refresh a repository's `AGENTS.md`, running each candidate command before writing it down. |
 | `tidy` | Clean up file sprawl and keep it out: an inventory script for scratch folders, throwaway names, version piles, duplicates and stray reports, a cleanup that waits for approval, and a baseline gate that fails only on new sprawl. |
 

@@ -39,5 +39,8 @@ Hooks are enabled per checkout by `git config core.hooksPath scripts/hooks`, whi
 | architect auto-loads only for a change to types, signatures or module boundaries. | judgment (description) |
 | Operator prompts, briefs, alias maps and reviewer replies never enter a tracked file. Fixtures are synthetic. | judgment (`.arch/` is gitignored) |
 | Push only when the operator asks for that push. | judgment (commit skill) |
+| A commit is one subject line with no body, unless the operator asks for a body. | `scripts/skill_eval.py` (`check_commit_rules`, when run); otherwise judgment (commit skill) |
+| Comment rules live in the `no-comments` skill; `SOUL.md` and other skills point to it. | judgment |
+| An architecture, ownership or state diagram is a fenced `mermaid` block of a type and size a terminal can draw. | judgment (`skills/architect/references/diagrams.md`) |
 
 When you add a rule, add its row. When a check makes a rule impossible to break, replace "judgment" with the check. Drop a row once its mistake cannot happen.

@@ -51,7 +51,7 @@ Write the reply clean as you draft it; a cleanup pass does not remove these patt
 - **Terse is not an excuse to drop content.** Every section the playbook's **Reply** line names stays.
 - **Frame impact first.** Name who the work is for and what changes for them before implementation detail, then what the next maintainer inherits.
 - **Never fabricate a link, citation, PR URL, or transcript reference.** Link only artifacts you produced or read this session. Name the commit SHAs that landed on `main`.
-- **Comments** only for a non-obvious *why*, in every file you produce, the delegate's diff included. No phase-narrating comments in test scripts.
+- **Comments** follow the **no-comments** skill, in every file you produce, the delegate's diff included.
 
 ## Playbooks
 

@@ -62,7 +62,7 @@ Either way the synthesis can ship as its own "scaffold first" commit; later comm
 Replace `not implemented` bodies with code and pseudocode with logic. The sketch is the contract: a deviation is signal to surface, not friction to absorb. If a function needs a parameter the sketch didn't anticipate, ask whether the sketch was wrong, a requirement was missed, or the implementation is overreaching. Planned, scoped breakage during fill-in is fine.
 
 - If the repo has an equivalence gate (golden benchmark, `--check` diff, golden dataset), slice 1 is behavior-preserving code motion that passes it; the new shape lands only after it is green.
-- Slice the rest by module boundary: one module or file set plus its tests per slice.
+- Slice the rest by module boundary: one module or file set per slice, each proven by an end-to-end run of the real path it serves, with no unit or mock test files.
 - With subagents available, they write the code and you review every diff and run the gates, following `references/dispatch.md`. Writing the implementation yourself is the deviation to justify.
 
 ## Phase E: Scrap when the architecture is wrong
@@ -89,6 +89,7 @@ When you scrap:
 
 - The sketch, derived from the caller's usage: one file of new types and signatures for a small change; a module map plus type definitions for larger work.
 - The rationale, in the same template.
+- Diagrams: wherever the sketch or rationale proposes or explains architecture, ownership boundaries or state transitions, a labeled fenced `mermaid` block per `references/diagrams.md`.
 
 Land the synthesis in the repo's own design/plans home (check the convention), not the sketch dir. Register it wherever the repo indexes live plans, then check `git status`: an unindexed or untracked plan is not a landed contract.
 

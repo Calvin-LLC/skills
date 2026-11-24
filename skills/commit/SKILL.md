@@ -1,6 +1,6 @@
 ---
 name: commit
-description: "Use before making any git commit: one major feature per commit on main, a 1-2 line overview message, never push without explicit user approval."
+description: "Use before making any git commit: one major feature per commit on main, a one-line message with no body, never push without explicit user approval."
 ---
 
 # Commit
@@ -18,7 +18,7 @@ One commit is one major feature, one bug fix, or one coherent restore point. Do 
 3. Confirm the set is one feature. Split if it isn't. If `git status` is clean and `HEAD` already holds the work, make no commit: name the commit that holds it and offer a split.
 4. Confirm local proof exists for this unit: the project's real tests, run on a fresh build of this tree. If it doesn't, test first.
 5. Stage only that unit, by explicit path; never `git add -A` or `git add .` at the repo root (`git add -A -- <explicit paths>` is fine). Ask if extra files are ambiguous. If a file also carries uncommitted work that is not yours, never `git add` it: use Mixed worktrees below. After a `stash pop` or a merge, run `git reset -q` before staging.
-6. Read `git diff --cached --name-only` as its own call, before committing: it must list this unit and nothing else, because the index can already hold another session's staged paths (`git reset -q` empties it without touching the worktree). Then `git commit -m "<subject>"` as a separate call. Add a second `-m` only for the rare restore-safety fact. Never chain add, commit, and push in one command.
+6. Read `git diff --cached --name-only` as its own call, before committing: it must list this unit and nothing else, because the index can already hold another session's staged paths (`git reset -q` empties it without touching the worktree). Then `git commit -m "<subject>"` as a separate call, with one `-m` and no body. Never chain add, commit, and push in one command.
 7. If a hook rejects the commit, nothing landed: fix the cause, restage, and commit again. Never bypass a hook with `--no-verify`.
 8. Do not push from this skill; Push below says when a push is allowed.
 
@@ -28,8 +28,8 @@ One commit is one major feature, one bug fix, or one coherent restore point. Do 
 
 - `type` required: `feat`, `fix`, `docs`, `refactor`, `chore`, `test`, `perf`.
 - `scope` optional: short noun (`api`, `ui`, `nav`).
-- Overview required: one line, imperative, <= 72 chars, no trailing period. A second line is allowed when the first cannot name the restore point.
-- No paragraph body, bullet list, or recap. A body exists only when a later restore would be unsafe without one extra fact (migration, data loss, required env). That is rare.
+- Overview required: one line, imperative, <= 72 chars, no trailing period.
+- No body: no second line, paragraph, bullet list or recap. Write a body only when the user asks for one in so many words.
 - No breaking-change markers, footers, or `Signed-off-by`. No decorative emoji. Apply the **unslop** skill.
 - Assert only what the diff proves: the overview names what landed, not what the work claims to achieve and not the files touched.
 

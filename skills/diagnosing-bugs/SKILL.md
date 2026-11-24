@@ -41,7 +41,7 @@ One variable at a time, each probe tied to a prediction. Prefer a debugger or RE
 
 ## Phase 5: fix and prove
 
-Fix the root cause. Prove it by re-running the Phase 1 command against the original, un-minimised scenario and showing it go from red to green, plus the neighbouring paths that share the flaw. Keep the proof as the loop script itself or a one-line note of the command in the commit body.
+Fix the root cause. Prove it by re-running the Phase 1 command against the original, un-minimised scenario and showing it go from red to green, plus the neighbouring paths that share the flaw. Keep the proof as the loop script itself or in the final reply.
 
 After three failed fixes, stop fixing. Each fix exposing a new problem elsewhere means the shared design is wrong, not the last hypothesis. Tell the user and discuss the design before a fourth attempt.
 

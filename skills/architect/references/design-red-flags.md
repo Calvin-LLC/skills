@@ -42,4 +42,4 @@ Cut an interface only where behavior actually varies across it. One implementati
 
 ## When a decision earns an ADR
 
-Write `docs/adr/NNNN-slug.md` (context, choice, reason, one to three sentences) only when the decision is hard to reverse, surprising without context, and the result of a real trade-off. A decision that fails any of the three goes in the commit message.
+Write `docs/adr/NNNN-slug.md` (context, choice, reason, one to three sentences) only when the decision is hard to reverse, surprising without context, and the result of a real trade-off. A decision that fails any of the three goes in the reply.

@@ -12,11 +12,11 @@ The prose that ships alongside the type sketch. One page. Sentence-case headings
 
 ## Shape
 
-*The recommended architecture. Data structures first; then how data flows through the signatures. Name the load-bearing decisions. State which invariants are encoded in types, where validation lives, and what the system deliberately does not do. Judge interface depth explicitly. State what complexity the public surface hides, what remains exposed to callers, and why the interface is no larger than needed.*
+*The recommended architecture. Data structures first; then how data flows through the signatures. Name the load-bearing decisions. State which invariants are encoded in types, where validation lives, and what the system deliberately does not do. Judge interface depth explicitly. State what complexity the public surface hides, what remains exposed to callers, and why the interface is no larger than needed. Draw the shape as fenced `mermaid` diagrams per [`diagrams.md`](diagrams.md): a `flowchart TD` for component boundaries and data flow with each edge labeled by its payload or contract, and a `stateDiagram-v2` for each lifecycle or mode with each edge labeled by its trigger or guard.*
 
 ## Synthesis decision
 
-*Filled in by the Phase B design runners. Records which candidate became the base and why, what was adapted from each of the others, and what was rejected and why.*
+*Filled in by the coordinator during Synthesis. Records which candidate became the base and why, what was adapted from each of the others, and what was rejected and why.*
 
 ## Tradeoffs accepted
 

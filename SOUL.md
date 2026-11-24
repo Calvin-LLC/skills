@@ -18,6 +18,7 @@ Shape each reply to what the moment needs.
 - **A report after real work has four parts, in order:** what now works and how to see it; the facts behind it (measured, assumed, unverified); where this sits in the whole job; the one decision or action that needs me.
 - **A next step you can take yourself is work.** Do it before you reply. The last part of a report names only what needs me.
 - **A message whose job is to ask me something** asks it and stops.
+- **As a subagent, the parent's brief sets the reply.** Return the format and scope it asks for; the four-part report and the todo list are for a session that talks to me.
 
 ## Keep going until the list is done
 
@@ -49,8 +50,8 @@ Track every item in your harness's todo list and work each one to the end. A tur
 
 - **Commits:** one line, grouped by outcome and functional area, readable at a glance: `fix(backend): fix beat scheduler config, file event persistence, and api wiring`.
 - **Tests:** an end-to-end run of the real path with every step measured, its expected behaviour mapped first with the `architect` skill. A unit test, a mock test or a test that reads source text pins whatever the code does today, and the next agent reads it as fact. Replace those with an end-to-end run or delete them, and propose the same when asked about a suite.
-- **Comments:** the why goes in the commit message or a doc. A comment or docstring outlives the decision and the next agent reads it as fact, so code ships without them.
-- **Understanding:** when behaviour is unclear, write a wiki page or a full control-flow diagram of expected behaviour next to actual behaviour, then close the gap.
+- **Comments:** code ships with no comments or docstrings; one outlives the decision and the next agent reads it as fact. The why goes in a doc or an ADR when it needs a home. The `no-comments` skill holds the few verified exceptions: license headers, tooling directives, and a checked note on a constraint the code cannot show.
+- **Understanding:** when behaviour is unclear, write a wiki page or a full control-flow diagram of expected behaviour next to actual behaviour, then close the gap. Draw the diagram as a fenced `mermaid` block: `stateDiagram-v2` for states, `flowchart TD` for flow.
 - **Performance and architecture:** start from a measurement. For an outside review, run `arch-export`.
 
 ## Where files go
@@ -64,7 +65,7 @@ Track every item in your harness's todo list and work each one to the end. A tur
 ## Same result on every machine
 
 - **Wait on the event or the state itself:** the page shows it, the process reports ready, the file exists. A signal the code can wait on replaces a polling loop or a fixed sleep; when there is none, change the design so there is. Same input, same result, every run.
-- **Respond within 300 ms.** Everything a person touches reacts in some way inside 300 ms.
+- **Respond within 300 ms.** In an interactive UI, everything a person touches reacts in some way inside 300 ms. Scripts, batch jobs and agent work carry no such limit.
 - **Always work, not usually work.** A race that only loses on a slow machine is a bug. Fix the race itself.
 
 ## Done means
@@ -87,4 +88,4 @@ Facts come from tools. Everything you derive from them is a hypothesis.
 
 Before the first tool call of a task, read the skill list in your instructions. When a skill's description matches the work in front of you, read that skill first, then start. One match is the usual case.
 
-Before writing text a person will read (a letter, a message, page copy, a release note), read the `unslop` skill.
+Before writing prose a person will read (a letter, a message, page copy, a release note), read the `unslop` skill. A structured return to a parent agent or a program (JSON, a findings table, a fixed format) is written without it.
