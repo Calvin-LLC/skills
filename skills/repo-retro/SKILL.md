@@ -1,11 +1,11 @@
 ---
 name: repo-retro
-description: Use for /repo-retro, a retro of recent agent sessions in a repo (wasted navigation, failed searches, stale docs, command loops), or a count of which skills get used across all projects. Proposes only; edits nothing until approved.
+description: Manual only. Load it when the user names this skill or types /repo-retro. A retro of recent agent sessions in a repo (wasted navigation, failed searches, stale docs, command loops), or a count of which skills get used across all projects. Proposes only; edits nothing until approved.
 disable-model-invocation: true
 ---
 # Repo retro
 
-Session history comes from the **recall** skill's reader, `../recall/scripts/sessions.py` relative to this skill's directory, run as `python <path>/sessions.py` (below, `sessions.py` means that command; `--help` lists its commands). It reads every agent harness's store on the machine, so the sample is every agent that worked in the repo, not only the harness you are running in. Write its output to a scratch directory outside the repo (the OS temp directory) and analyse it with a script file, not a shell heredoc.
+Session history comes from the **recall** skill's reader, run in `bash` as `python skill://recall/scripts/sessions.py <command>` (below, `sessions.py` means that command; `--help` lists its commands). It reads every agent harness's store on the machine, so the sample is every agent that worked in the repo, not only the harness you are running in. Write its output to a scratch directory outside the repo (the OS temp directory) and analyse it with a script file, not a shell heredoc.
 
 ## Workflow
 

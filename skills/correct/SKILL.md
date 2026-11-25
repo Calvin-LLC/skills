@@ -11,7 +11,7 @@ Assume every contributor is an agent that sees only the files it opened, copies 
 
 ## Find the mistake classes
 
-First, read recent commits, reverts, agent instruction files (`AGENTS.md`), and comments that explain workarounds. Then read how the operator corrected agents in past sessions: the **recall** skill's `scripts/sessions.py prompts --cwd <absolute-repo-path>` gives the operator's own words across every harness, and a correction there that names a file or pattern is a mistake class candidate. If it returns 0 prompts, the history was recorded under an earlier project path (the repo before a move or split): export that cwd too and read both. If the recall skill is not installed, use commits and instruction files and ask the operator for the corrections.
+First, read recent commits, reverts, agent instruction files (`AGENTS.md`), and comments that explain workarounds. Then read how the operator corrected agents in past sessions: the **recall** skill's `scripts/sessions.py prompts --cwd <absolute-repo-path>` gives the operator's own words across every harness, and a correction there that names a file or pattern is a mistake class candidate. If it returns 0 prompts, the history was recorded under an earlier project path (the repo before a move or split): export that cwd too and read both.
 
 Group the mistakes into classes. A class counts once it has happened twice. Three or more consecutive `fix` commits on one symptom in the same file mean each one patched a single call site: the class is the missing shared function, so the fix is one helper that owns the behavior plus a check that rejects the raw call anywhere else.
 
@@ -19,9 +19,9 @@ Corrections miss mistakes that produce no complaint: money taken and not granted
 
 ## Prove the check runs
 
-"Fails on a real past mistake" assumes the check executes. Prove that first: a cron with a fatal import, a monitor whose output goes nowhere, or a guard with no caller has never said no, and reads as coverage in the file listing. Run it, show its verdict on known-good input, then its failure verdict on the past mistake.
+"Fails on a real past mistake" assumes the check executes. Prove that first: a cron with a fatal import, a monitor whose output goes nowhere, or a guard with no caller has never said no. Run it, show its verdict on known-good input, then its failure verdict on the past mistake.
 
-List every check and every place that invokes it. Two cases are broken: a check with no caller (including a `--check` flag no scheduled step invokes), and a check with a caller that sits red and ignored, which trains everyone to read red as noise. Fix both with one runner that enumerates the directory, so a check that exists is a check that runs, and name each check in CI as its own step so a failure reports itself.
+List every check and every place that invokes it. Two cases are broken: a check with no caller (including a `--check` flag no scheduled step invokes), and a check with a caller that sits red and ignored. Fix both with one runner that enumerates the directory, so a check that exists is a check that runs, and name each check in CI as its own step so a failure reports itself.
 
 The runner separates four outcomes:
 

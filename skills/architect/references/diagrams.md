@@ -17,7 +17,7 @@ Use these five types only. Never use `gantt`.
 ## Terminal rendering
 
 - Lay a flowchart out top to bottom with `TD`. Wide side-by-side `LR` subgraphs clip in a narrow terminal.
-- Write labels in plain ASCII. HTML entities and `<br/>` tags print as literal text.
+- Keep each label to one short line of plain ASCII.
 - Keep each diagram to 10 nodes or fewer. Split a larger system into several small diagrams, each answering one question.
 - Name a node with the code's own identifier or a short role.
 

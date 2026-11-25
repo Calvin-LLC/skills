@@ -29,6 +29,12 @@ The scan says where to look, not what is wrong. For each of the top files and it
 
 Drop a pair when the reason is innocent: a test with its subject, a header with its source, a feature built across layers in one commit, a formatter or rename sweep. Check the repo's decision records and the comments around the code before proposing something it already tried and rejected.
 
+Check each name against the code in this order:
+
+1. `lsp`. `references` counts a module's callers (leaky module, pass-through), `symbols` lists what one file defines (two things in one file), `definition` finds the owner of a rule, `diagnostics` shows what already fails.
+2. Structural search for the repeated condition or call shape: `ast-grep run -p '<pattern>' -l <lang> <path>` in `bash`, or the `ast_grep` tool when `astGrep.enabled` is on.
+3. Text `grep`, for what those two cannot see: strings, config, comments, generated code.
+
 ## 3. Rank and report
 
 Keep at most five candidates. Each one carries all three parts:

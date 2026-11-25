@@ -3,10 +3,6 @@ name: arch-export
 description: Use for /arch-export or to get an outside model (Perplexity, ChatGPT, Claude) with no repo access to review a design, a defect or a planned fix. Writes a sanitized brief to paste; the reply comes back through arch-import.
 author: Calvin-LLC
 license: MIT
-metadata:
-  hermes:
-    tags: [architecture, review, sanitization]
-    related_skills: [arch-import]
 ---
 
 # Arch export

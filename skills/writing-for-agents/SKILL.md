@@ -1,6 +1,6 @@
 ---
 name: writing-for-agents
-description: "Use when authoring or pruning the content of a skill, AGENTS.md, SOUL.md, or a brief. Not for installing or syncing skills, nor for prose style edits."
+description: "Manual only. Load it when the user names this skill or types /writing-for-agents, to author or prune the content of a skill, AGENTS.md, SOUL.md, or a brief. Not for installing or syncing skills, nor for prose style edits."
 disable-model-invocation: true
 ---
 

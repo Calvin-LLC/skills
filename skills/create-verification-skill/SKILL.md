@@ -1,12 +1,12 @@
 ---
 name: create-verification-skill
-description: "Use for /create-verification-skill, \"make a control skill for this repo\", or when a project has no scripted way to prove UI, CLI or service behavior: generates a project-local skill that drives the app as a user does. Not for upkeep."
+description: "Manual only. Load it when the user names this skill or types /create-verification-skill: generates a project-local skill that drives the app as a user does, for a project with no scripted way to prove UI, CLI or service behavior. Not for upkeep."
 disable-model-invocation: true
 ---
 
 # Create a verification skill
 
-Every serious project needs a scripted way to drive the real app and prove behavior: launch it, exercise a feature the way a user would, and capture evidence. This skill generates that as a project-local skill in the harness's project-skill directory (commonly `.agents/skills/<name>/` or `.claude/skills/<name>/`; check its docs; paths below use `.agents/skills/`) tailored to the repo. You write the generator's output for the next agent, not for a human: it will be read cold, mid-task, by an agent that has never seen the app.
+Every serious project needs a scripted way to drive the real app and prove behavior: launch it, exercise a feature the way a user would, and capture evidence. This skill generates that as a project skill in the target repo at `.omp/skills/<name>/`, or `.agents/skills/<name>/` when the repo already keeps skills there (paths below use `.omp/skills/`). You write the generator's output for the next agent, not for a human: it will be read cold, mid-task, by an agent that has never seen the app.
 
 ## 1. Interview the repo, not the user
 
@@ -14,7 +14,7 @@ Answer these from the codebase and only ask the user what you cannot observe:
 
 - **Surface:** what does a user actually touch? A web UI, a CLI/TUI, a desktop app, an API, a mobile app, a library? A repo can have several; pick the primary one and note the rest.
 - **Run:** how does the app start locally? Prefer the repo's own documented dev command (package scripts, Makefile, README quickstart). Note ports, env vars, seed data, auth.
-- **Drive:** how can an agent interact with it programmatically? Existing harnesses first — Playwright/Cypress specs, expect scripts, PTY helpers, curl-able endpoints, a debug port the app itself exposes. Only then pick a generic recipe: the agent's built-in browser tool for web UIs (otherwise script Playwright directly), a PTY-capable shell tool or tmux for CLI/TUI, plain HTTP for services.
+- **Drive:** how can an agent interact with it programmatically? Existing harnesses first: Playwright/Cypress specs, expect scripts, PTY helpers, curl-able endpoints, a debug port the app itself exposes. Otherwise pick the driver by surface. A web UI: `browser` in `eval` (`browser.open`, then act and observe on the page). A CLI or TUI: `bash` with its native PTY (`pty: true`, which needs an interactive session; a headless run falls back to no terminal). A server under test: a named `bash` service with a readiness check, driven over HTTP. A desktop app: `computer` only when `computer.enabled` is on (off by default), otherwise the app's own CLI or test hooks. A feature with neither is recorded in the feature map as not machine-verifiable.
 - **Observe:** what evidence can be captured? Screenshots, terminal transcripts, response bodies, logs, exit codes, DB state.
 - **Isolate:** can two instances run side by side (ports, data dirs, profiles)? If not, say so in the generated skill: refusing to double-drive a shared instance beats corrupting the user's session.
 
@@ -22,21 +22,21 @@ If the checkout doesn't build or start as-is, fix that first (or report it preci
 
 ## 2. Generate the skill
 
-Write `.agents/skills/<name>/SKILL.md`, where `<name>` is `verify-<app>`, with YAML frontmatter (`name: <name>` and a `description` that names the app, the surface, and when to reach for it — without frontmatter the skill never registers) and these sections, each grounded in what the interview actually found (no placeholders left):
+Write `.omp/skills/<name>/SKILL.md`, where `<name>` is `verify-<app>`, with YAML frontmatter (`name: <name>` and a `description` that names the app, the surface, and when to reach for it; without frontmatter the skill never registers) and these sections, each grounded in what the interview actually found (no placeholders left):
 
-- **Launch:** the exact command that starts the app for verification, and how to tell it's ready (a log line, a prompt). Launch must reach a usable state from an empty data dir, including any migrations and seed data. Ready means usable, not just that a process answers. A database health check can pass while its init scripts are still running. Include teardown. For a short-lived CLI or TUI there is no server to keep alive: launch means build the binary (or install deps) once, then start each drive in its own isolated PTY or tmux session.
+- **Launch:** the exact command that starts the app for verification, and how to tell it's ready (a log line, a prompt). A server runs as a named `bash` service whose readiness check is that signal. Launch must reach a usable state from an empty data dir, including any migrations and seed data. Ready means usable, not just that a process answers. A database health check can pass while its init scripts are still running. Include teardown. For a short-lived CLI or TUI there is no server to keep alive: launch means build the binary (or install deps) once, then start each drive in its own `bash` call with `pty: true`.
 - **Doctor:** one read-only check that answers "is this instance worth driving?" — process up, right version/build, port owned by us, auth valid. An agent runs this first whenever anything looks off.
-- **Drive:** the harness recipe with real selectors/commands from this repo, not examples. Prefer stable handles (ARIA labels, data attributes, prompt strings, route paths) over coordinates and tab order.
+- **Drive:** the chosen driver's recipe with real selectors/commands from this repo, not examples. Prefer stable handles (ARIA labels, data attributes, prompt strings, route paths) over coordinates and tab order.
 - **Evidence:** what to capture for a proof and where it goes. State the proof standards: exercise the real user path, not internal setters or test-only endpoints; capture the action and the resulting state, not just the final screen; verify side effects (files written, rows inserted, messages sent) alongside what's visible; mocks only where a production boundary already isolates the external system. When the safe path is a dry-run or test mode, verify what it actually skips by observing (files, network, git refs) rather than trusting its name: some dry-runs still touch the network or open a browser.
 - **Strictness:** never weaken the journey to make it pass. The map is the repo's maintained verification source; a proof that drives one convenient entry point is incomplete when the map lists others.
 - **Cleanup:** how to tear down instances the run created. Never kill by process name; kill what you started. Cleanup removes instances and scratch state, never the evidence: proof artifacts survive the teardown, in a location the skill names.
 - **Helpers:** any script the skill ships is executable and its invocation is shown in the skill body. A helper the reader has to reverse-engineer is not a helper.
 
-Some harnesses load project skills only from trusted roots, so tell the user to trust the repo and start a new session; until then the generated skill exists on disk but is not registered. Never write generated skills into the shared user-level skill library.
+Never write generated skills into the shared user-level skill library.
 
 ## 3. Seed the feature map
 
-Create `.agents/skills/<name>/features/README.md` plus one file per user-facing feature you can identify (aim for the top 3-5 to start, from routes, commands, menus, or docs). Follow the shape in [`references/feature-map-example/`](references/feature-map-example/), with a README index and one file per feature. Each file answers, from the user's point of view: what the feature is, how to reach it, how to drive it with the harness, and what observable end state proves it works. The four H2s are `Sub-features`, `How to get to it (user POV)`, `Driving it with <harness>`, and `Gotchas`. If the seed data lacks a precondition that a journey needs, the journey reports a failure and the reason goes in that feature's `Gotchas`.
+Create `.omp/skills/<name>/features/README.md` plus one file per user-facing feature you can identify (aim for the top 3-5 to start, from routes, commands, menus, or docs). Follow the shape in [`references/feature-map-example/`](references/feature-map-example/), with a README index and one file per feature. Each file answers, from the user's point of view: what the feature is, how to reach it, how to drive it, and what observable end state proves it works. The four H2s are `Sub-features`, `How to get to it (user POV)`, `Driving it with <harness>` (the driver's name, such as `browser` or `bash` PTY), and `Gotchas`. If the seed data lacks a precondition that a journey needs, the journey reports a failure and the reason goes in that feature's `Gotchas`. A feature no driver reaches still gets a file, with "not machine-verifiable" and the reason in `Gotchas`.
 
 ## 4. Prove the generated skill before handing it over
 

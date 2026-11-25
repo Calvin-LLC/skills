@@ -1,6 +1,6 @@
 ---
 name: plain
-description: Restate the last message in plain human language, with no jargon or codenames. Use for /plain, /bro, or a request to restate the last message without jargon.
+description: Manual only. Load it when the user names this skill or types /plain or /bro. Restates the last message in plain human language, with no jargon or codenames.
 disable-model-invocation: true
 ---
 

@@ -1,11 +1,10 @@
 ---
 name: init
 description: >-
-  Build or refresh a repository's AGENTS.md from what the repo actually does.
-  Use when asked to run /init, initialize a repo for agents, write or update
-  AGENTS.md, onboard an agent into a codebase, or find out how a project is
-  built and tested. Detects the command surfaces, runs each candidate command
-  before writing it down, and never records a fact it did not verify.
+  Manual only. Load it when the user names this skill or types /init. Builds or
+  refreshes a repository's AGENTS.md from what the repo actually does: detects
+  the command surfaces, runs each candidate command before writing it down, and
+  never records a fact it did not verify.
 disable-model-invocation: true
 ---
 

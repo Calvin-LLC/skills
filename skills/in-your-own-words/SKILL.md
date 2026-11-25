@@ -1,6 +1,6 @@
 ---
 name: in-your-own-words
-description: "Use for /in-your-own-words, or before starting work whose goal is ambiguous: restate what you think the user's goals are and what problem they're trying to solve."
+description: "Manual only. Load it when the user names this skill or types /in-your-own-words. Restates what you think the user's goals are and what problem they're trying to solve."
 disable-model-invocation: true
 ---
 

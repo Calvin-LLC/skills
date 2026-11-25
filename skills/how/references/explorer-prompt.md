@@ -16,9 +16,13 @@ Other explorers are investigating different slices of the same subsystem in para
 
 {EXPLORATION_ANGLE}
 
+## Starting Locations
+
+{START_LOCATIONS}
+
 ## How to Explore
 
-- Start broad: find the relevant directories and search for key types, interfaces, and class names.
+- Start from the files and symbols above, which the lead already located. Open them first, and search by text only for what they do not lead to.
 - Follow the thread: from an entry point, trace the call chain (callers, callees, data flow, type definitions).
 - Read the actual code; don't guess from file names.
 - Stop when you can describe the full path from input to output (or trigger to effect) without hand-waving any step.

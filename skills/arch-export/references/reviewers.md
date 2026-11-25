@@ -27,22 +27,23 @@ reviewer, wants two compared, asks for a headless run, or a reviewer refuses.
 ## Headless Opus run
 
 Only when the user says "to an opus session" (or otherwise asks you to run the
-review). Run it from the leak-checked brief:
+review). Run it in `bash` from the leak-checked brief:
 
 ```
-POSIX:
-cat .arch/brief-<topic>.md | claude -p "Review the architecture brief on stdin and answer its Ask section. Work only from the brief." --model opus --effort high --tools "" --max-turns 1 --no-session-persistence --output-format json > out.json
-
-Windows (PowerShell):
-Get-Content -Raw .arch\brief-<topic>.md | claude -p "Review the architecture brief on stdin and answer its Ask section. Work only from the brief." --model opus --effort high --tools '""' --max-turns 1 --no-session-persistence --output-format json | Set-Content -Encoding utf8 out.json
+omp -p --model <model> --thinking high --no-tools --no-session --mode json --no-skills --no-rules --no-context-files "Review the attached architecture brief and answer its Ask section. Work only from the brief." @.arch/brief-<topic>.md > .arch/<reviewer>-out.jsonl
 ```
 
-In Windows PowerShell 5 an empty `--tools ""` argument is dropped, hence the
-`'""'` form; PowerShell 7 takes plain `--tools ""`. Prefer `| Set-Content` to
-`>`, which writes UTF-16 in PowerShell 5.
+`<model>` is `opus` for "an opus session", otherwise the model the user names.
+`@<brief-file>` attaches the brief to the prompt. `--no-tools` holds the
+reviewer to the brief, and `--no-skills --no-rules --no-context-files` keep
+this repo's instructions out of its context.
 
-Extract `.result` to `.arch/<reviewer>-reply.md` and read the reply in full
-before summarizing. Report the model id from `modelUsage` and the cost. Relay
-the reviewer's stated assumptions as unverified items, and recheck its
-arithmetic against the brief's own numbers. Nothing from the reply is applied
-until the user picks items; the **arch-import** skill turns it into work.
+`--mode json` prints one JSON event per line. The last `message_end` event
+whose `message.role` is `assistant` carries the reply in the `text` blocks of
+`message.content`, the model id in `message.model` and the cost in
+`message.usage.cost.total`. Write the reply text to
+`.arch/<reviewer>-reply.md` and read it in full before
+summarizing. Report the model id and the cost. Relay the reviewer's stated
+assumptions as unverified items, and recheck its arithmetic against the brief's
+own numbers. Nothing from the reply is applied until the user picks items; the
+**arch-import** skill turns it into work.

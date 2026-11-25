@@ -14,10 +14,10 @@ git blame -L <start>,<end> <file>
 git log --follow -p -- <file>
 git log --oneline -20 -- <file>
 git log -S<symbol> --oneline
-gh pr view <number> --json title,body,author,comments,reviews
+gh pr list --search <sha> --state merged
 ```
 
-Blame shows the last touch, not the origin; `git log -S<symbol>` finds the commit that added or removed it. Default to git and `gh`. Open a ticket, doc, chat, metric, or error tool only when it is already in the session and git is not enough.
+Blame shows the last touch, not the origin; `git log -S<symbol>` finds the commit that added or removed it, and `gh pr list --search <sha>` in `bash` finds the PR that carried it. `read pr://<n>` returns that PR's description, reviews and comment threads. `read pr://<n>/diff` lists its changed files (`pr://<n>/diff/<i>` one file, `pr://<n>/diff/all` the whole diff). `grep` with a `pr://<n>/...` path searches the thread or the diff. Default to git and the PR record. Open a ticket, doc, chat, metric, or error tool only when it is already in the session and git is not enough.
 
 Answer with:
 

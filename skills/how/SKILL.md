@@ -28,15 +28,19 @@ When in doubt, lean simple; spawn explorers later if the explanation hits a wall
 
 ### Step 2a. Explore (complex only)
 
-Split the question into 2-4 distinct angles so explorers don't duplicate work (e.g. data model and state; request path and enforcement; configuration and metrics). Spawn one read-only explorer subagent per angle in one call (respect the tool's per-call limit and batch the rest); with no subagent tool, run the slices yourself in sequence. Build each prompt from `references/explorer-prompt.md` plus its angle. Explorers return components, flow, files read and non-obvious findings; overlap is fine. Go to Step 3.
+Split the question into 2-4 distinct angles so explorers don't duplicate work (e.g. data model and state; request path and enforcement; configuration and metrics).
+
+Locate before you dispatch. An explorer is a `scout`: it has `read`, `find`, `grep`, `glob` and `web_search` (plus `ast_grep` when `astGrep.enabled` is on) and no `lsp` or `bash`, so the symbol lookups are yours. Run `lsp` on the question's key types and entry points: `symbols` with `file: "*"` and a `query` to find them, then `definition` and `references` to follow them. For a structural question (every implementer, every call of one shape), use `ast_grep` when `astGrep.enabled` is on, otherwise `ast-grep run -p '<pattern>' -l <lang> <path>` in `bash`. With no language server for the language (`lsp` `status` lists them), locate with structural search and `grep`. Stop when each angle has exact files and symbols to start from.
+
+Spawn the explorers in one `task` call, one `tasks[]` item per angle with `agent: "scout"` (the `smol` model role). Build each item's `task` from `references/explorer-prompt.md`, filled with its angle and its starting files and symbols. The template has explorers start from those locations rather than from a text search. Explorers return components, flow, files read and non-obvious findings; overlap is fine. Go to Step 3.
 
 ### Step 2b. Direct explain (simple only)
 
-One read-only pass that explores and explains: spawn a single subagent with `references/explainer-prompt.md`, minus the explorer findings. With no subagent tool, do the pass yourself. Go to Step 4.
+One read-only pass that explores and explains. Find the entry point with `lsp` as in Step 2a, then spawn one `task` item with no `agent` (the default worker; tell it to stay read-only). Its `task` is `references/explainer-prompt.md`, minus the explorer findings, plus the entry point's file and symbol. Go to Step 4.
 
 ### Step 3. Synthesize (complex only)
 
-Spawn a single read-only subagent with all explorer findings and the template in `references/explainer-prompt.md`. It reconciles overlap, resolves contradictions against the code, and writes one explanation.
+Spawn one `task` item with no `agent` (the default worker; tell it to stay read-only). Its `task` is the template in `references/explainer-prompt.md` filled with every explorer's output, read from `agent://<id>`. It reconciles overlap, resolves contradictions against the code, and writes one explanation.
 
 ### Step 4. Present
 
@@ -65,7 +69,7 @@ A header, API table, or helper proves an interface, never an implementation. Whe
 ## Critique
 
 1. **Explain first.** Run Explain Steps 1-4; you must understand the architecture before critiquing it.
-2. **Spawn critics.** One read-only critic subagent per model in the configured how-critics list, all in one call (respect the tool's per-call limit and batch the rest). Pick the model per subagent when the tool allows it; otherwise run the harness's headless one-shot CLI on that model; if neither is possible, say model diversity was unavailable. Build each prompt from `references/critic-prompt.md`: the explanation (so critics don't re-explore), the relevant file paths, and the rubric in `references/critique-rubric.md`.
+2. **Spawn critics.** One `task` call, one `tasks[]` item per critic, each a default worker (no `agent`): the bundled `reviewer` reviews a patch in its own format and does not follow the template. For different models, set `model` on each item when `task.perCallModel` is on, or use custom agents whose `model:` lines differ. With neither, every critic runs on one model: spawn one and say model diversity was unavailable. Build each prompt from `references/critic-prompt.md`: the explanation (so critics don't re-explore), the relevant file paths, and the rubric in `references/critique-rubric.md`. Tell each critic to stay read-only. The template has each critic reply with one JSON object: a `findings` array whose entries carry `severity`, `title`, `components`, `finding`, `evidence` and `impact`. Read them through `agent://<id>/findings/<index>`, or `agent://<id>` whole when the reply is not valid JSON. When `task.structured` is on, pass the same shape as each item's `outputSchema`.
 3. **Lead judgment.** You are a pragmatic lead, not an aggregator. Sort findings into the **grill-me** skill's buckets: **Act on** (worth fixing now), **Consider** (real, cost/benefit unclear), **Noted** (valid, low priority), **Dismissed** (wrong, missing context, or style preference).
 
 Present the explanation first, then the critique verdict below it. The explanation must stand on its own for a reader who only wants to understand the system.

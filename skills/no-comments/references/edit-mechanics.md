@@ -18,6 +18,17 @@ Deleting a comment block with a search-and-replace edit eats live code when the 
 - A bad edit: restore the opener alone. Do not re-add the comment.
 - Re-read the edited region after every edit. A missing `{` is invisible in a diff summary.
 
+## Finding and stripping by syntax node
+
+A regex cannot tell a comment from a string that contains `//` or `#`. A parser can. For any language tree-sitter has a grammar for, take the comment list from the syntax tree.
+
+- **Inventory.** `ast-grep run -k comment <path>` in `bash` prints every comment node as `file:line:text`: full-line, trailing and block comments, and nothing inside a string literal. Some grammars split the node: Rust and Java need `-k 'line_comment, block_comment'`. A kind the grammar does not have is an error, not an empty result, so a wrong name cannot pass as "no comments". Add `-l <lang>` when the extension is ambiguous. `--json=stream` gives one object per comment with `file`, `text` and a 0-indexed `range.start.line` and `range.end.line`; intersect those lines with the `git diff -U0` hunks for a diff-scoped pass. An OMP build whose `ast-grep` builtin has no `-k` exits 2 as unsupported: use a standalone `ast-grep` there, or the regex guards under "Batch mechanics".
+- **One comment, many copies.** `ast_edit` with the comment's exact text as `pat` and an empty `out`, over the scope's `paths`, previews every copy in every file and changes nothing. `resolve <reason>` applies them and `reject <reason>` drops the proposal. The apply is not atomic: a failure partway leaves the earlier files changed and names only the file that failed, so check `git diff` afterwards. A string holding the same text is left alone. With `astGrep.enabled` on, `ast_grep` with the same `pat` lists the copies first.
+- **What it leaves behind.** `ast_edit` removes the node and nothing else: a full-line comment becomes an empty line and a trailing comment leaves its spaces. Delete those with `edit` or the project's formatter, then run the proof below. Until then the diff shows changed lines, not deleted ones.
+- **One-offs and trims** go through `edit`, under the opener rule above.
+- **Python docstrings** are string expressions, not comment nodes. They stay with `scripts/docstring_inventory.py` and `scripts/docstring_apply.py`.
+- **No grammar** (a template language, an embedded `<style>` block the host grammar treats as text): the regex guards under "Batch mechanics" and "Bulk full-line strips" apply.
+
 ## Verification commands
 
 Each check has a POSIX form and a PowerShell form (Windows PowerShell; `rg` also works in both shells if installed).
@@ -71,6 +82,8 @@ When a scripted pass deletes and trims hundreds of comments across files, the me
 - **Replicated blocks need multi-hit trims.** The same comment copied at every handler call site must be trimmed identically at every copy; a single-hit assert fails halfway and strands the rest. Replace-all, bottom-up, then report the site count.
 
 ## Bulk full-line strips
+
+Where tree-sitter has a grammar, the comment list comes from the parser ("Finding and stripping by syntax node"), block comments included, and the first rule below does not apply. The other two hold either way.
 
 For a whole-tree pass where the user wants every comment gone, script only the subset that is mechanically safe:
 

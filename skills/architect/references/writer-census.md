@@ -4,14 +4,23 @@ Before sketching anything that charges, grants, revokes, deletes, or sends, list
 every code path that mutates the same authoritative state, quote each one's
 predicate for doing so with `path:line`, and diff those predicates against each
 other. The divergences are the design's real requirements, and collapsing them
-into one owner is the sketch — not a follow-up cleanup task.
+into one owner is the sketch, not a follow-up cleanup task.
 
 - A duplicated stack is visible because someone decides to unify it. A duplicated
   *effect* is invisible: each new caller looks like a fresh feature, so the fourth
   copy of "grant the subscription" gets written by someone who never saw the
   third. Reading the neighbourhood of the new code will not find it.
-- Grep for the state, not the feature: the column name, the table, the external
-  identifier. Every writer names the same thing, whatever it calls the verb.
+- Search for the state, not the feature: the field, the column, the table, the
+  external identifier. Every writer names the same thing, whatever it calls the
+  verb. Find the writers in this order:
+  1. `lsp` `references` on the field. Keep the write sites and drop the reads.
+  2. Structural search, one pattern per write shape: plain assignment
+     (`ast-grep run -p '$OBJ.<field> = $VAL' -l <lang> <path>` in `bash`),
+     compound assignment, increment, a setter or update call, an object literal
+     that sets the field. Use the `ast_grep` tool instead when `astGrep.enabled`
+     is on.
+  3. Text `grep`, for the writers those two cannot see: SQL strings, column names
+     in config and migrations, comments that name a manual step, generated code.
 - Record what each writer reads the *same* input to mean. Two paths that agree on
   "paid" but disagree on which units a money field holds, on a lifetime order, or
   on whether a partial payment counts are already broken against each other, and

@@ -1,6 +1,6 @@
 ---
 name: writing-plans
-description: Write an implementation plan from a spec or when the user asked for a plan, before touching code.
+description: "Write an implementation plan from a spec or when the user asked for a plan, before touching code. Not for designing types, signatures, or module boundaries; use architect."
 ---
 
 # Writing plans

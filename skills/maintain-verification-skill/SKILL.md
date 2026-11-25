@@ -1,6 +1,6 @@
 ---
 name: maintain-verification-skill
-description: "Use for /maintain-verification-skill, \"audit the verify skill\", or when the app changed and its verification skill or feature map may have drifted: source readers, one live pass, at most one PR. Not for creating one."
+description: "Manual only. Load it when the user names this skill or types /maintain-verification-skill: audits a verification skill or feature map that may have drifted from the app, with source readers, one live pass, and at most one PR. Not for creating one."
 disable-model-invocation: true
 ---
 
@@ -22,22 +22,22 @@ Only edit the verification skill's own directory (its SKILL.md, features/, and a
 
 ## Pass
 
-0. **Locate the target.** Find the verification skill to maintain: the project-local skill whose body has launch/drive sections and a feature map, in the harness's project-skill directory (`.agents/skills/<name>/` or `.claude/skills/<name>/`). Several candidates → ask which one; none → stop and point at `/create-verification-skill` instead of inventing a target.
+0. **Locate the target.** Find the verification skill to maintain: the project skill whose body has launch/drive sections and a feature map, in `.omp/skills/<name>/`, or `.agents/skills/<name>/` when the repo keeps skills there. Several candidates → put the choice to the user with `ask`; none → stop and point at `/create-verification-skill` instead of inventing a target.
 
 1. **Index hygiene.** Read the feature map README and glob its sibling files. Fix missing, extra, duplicate, or dead entries. Lightweight; no generated inventory.
 
-2. **Source wave.** One read-only subagent per feature file; respect the tool's per-call limit and batch the rest, waiting for each batch to finish before the next. With no subagent tool, run the slices yourself in sequence. Each explains "how does this user-facing feature work?" from source, flags likely doc drift with citations, and returns one concise live-verification recipe. Children start with no context, so give each the feature file path, the question, and the return shape. Children never drive the app and never edit files. Return shape: feature summary / source entry points / likely drift or none / one recipe.
+2. **Source wave.** One `scout` subagent per feature file, all in one `task` call. Each explains "how does this user-facing feature work?" from source, flags likely doc drift with citations, and returns one concise live-verification recipe. Children start with no context, so give each the feature file path, the question, and the return shape. Children never drive the app and never edit files. Return shape: feature summary / source entry points / likely drift or none / one recipe.
 
 3. **Reconcile.** Every feature file has a returned summary. Merge overlapping recipes into as few app states as practical. Spot-check cited drift; don't re-prove clean claims. Sweep recent churn for user-facing surfaces missing from the map — require a concrete source path before calling one missing.
 
-4. **Live pass.** Required even when source looks clean. The coordinator owns all driving; follow the verification skill's own launch model — one long-lived instance driven serially for servers and UIs, or a fresh isolated session per drive for short-lived CLIs (the skill's Launch section decides, not this one). Exercise every feature at least once, and hold these invariants the whole pass, whatever the failure:
+4. **Live pass.** Required even when source looks clean. The coordinator owns all driving, with the driver the skill's Drive section names: `browser` in `eval` for a web UI (`browser.open`, then act and observe on the page); `bash` with its native PTY (`pty: true`, which needs an interactive session) for a CLI or TUI; a named `bash` service with a readiness check for a server under test; `computer` for a desktop app only when `computer.enabled` is on (off by default), otherwise the app's own CLI or test hooks. Follow the verification skill's own launch model: one long-lived instance driven serially for servers and UIs, or a fresh isolated session per drive for short-lived CLIs (the skill's Launch section decides, not this one). Exercise every feature at least once, and hold these invariants the whole pass, whatever the failure:
    1. Never drive an instance you haven't health-checked since it last did something surprising: doctor before first drive, on each fresh session where sessions are the unit, and after any failed drive. Where doctor can't see the failure (a wedged UI state on a healthy process), reset to a known state or relaunch rather than hoping.
    2. Evidence captured so far survives every cleanup, checked at its named location, not assumed.
    3. Nothing a drive started outlives its usefulness: clean failed-iteration residue whether the session is stuck, exited, or shared (for a shared instance, clean the residue, not the instance).
 
    A doctor failure caused by skill drift is drift: fix it under edit scope and retry once (restart only what the fix invalidated) before calling the pass `blocked`. Any harness fix from triage gets re-driven live before it ships. Final teardown happens after the last drive, including those re-proofs; evidence stays.
 
-   **Unreachable features:** a feature that can't be reached is `verified-unreachable` only with the concrete prerequisite (auth, entitlement, OS, external state) and the route attempted; if the map omits that prerequisite, that's drift (fix it → **changed**). A genuine `verified-unreachable` counts as covered and does not by itself make the pass **blocked**; use **blocked** only when a prerequisite you could not obtain stops coverage or a proven fix cannot ship.
+   **Unreachable features:** a feature that can't be reached is `verified-unreachable` only with the concrete prerequisite (auth, entitlement, OS, external state) and the route attempted; if the map omits that prerequisite, that's drift (fix it → **changed**). A genuine `verified-unreachable` counts as covered and does not by itself make the pass **blocked**; use **blocked** only when a prerequisite you could not obtain stops coverage or a proven fix cannot ship. A desktop feature with `computer.enabled` off and no CLI or test hook is recorded in its feature file as not machine-verifiable, and counts as covered the same way.
 
 5. **Triage.** Wrong or missing user-POV description → doc drift, fix it. Working behavior the harness can't drive → harness gap, fix it; a harness fix follows the same helpers rule as generation (scripts executable, invocation documented in the skill body). App behavior that's actually broken → product gap; record it for the user, keep it out of this PR.
 

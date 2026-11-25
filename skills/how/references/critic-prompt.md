@@ -41,19 +41,23 @@ For each finding:
 - "This could use more abstraction" without showing what the abstraction would actually solve
 - Flagging intentional tradeoffs with clear benefits as issues
 
-If the architecture is sound, say so. An empty critique is a valid outcome.
+If the architecture is sound, return an empty `findings` array. An empty critique is a valid outcome.
 
 ## Output
 
+Reply with one JSON object and nothing else.
+
 ```
-## Findings
-
-### 1. [Severity] Short title
-**Components**: Which parts of the system are involved
-**Finding**: What's wrong architecturally
-**Evidence**: Concrete code references
-**Impact**: What this costs in practice
-
-### 2. [Severity] Short title
-...
+{
+  "findings": [
+    {
+      "severity": "structural | concern | observation",
+      "title": "Short title",
+      "components": "Which parts of the system are involved",
+      "finding": "What's wrong architecturally",
+      "evidence": "Concrete code references",
+      "impact": "What this costs in practice"
+    }
+  ]
+}
 ```

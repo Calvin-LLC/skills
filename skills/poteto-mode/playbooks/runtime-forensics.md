@@ -4,8 +4,8 @@
 
 1. Capture the live signal on the matching surface via the control skill: a CPU profile for a spinning process, a heap snapshot for a leak, a CDP trace for a visual glitch. A real artifact, not a guess.
 2. Reduce the artifact to the smoking gun: the function on the hot path, the retainer chain from the leaked object to a GC root, the loop firing without input. Parse large artifacts in a subagent and keep the reduced finding in the main thread.
-3. Prove the mechanism before believing it. Inject instrumentation via CDP eval on the running process, or hotfix the live code without reloading, to confirm the hypothesis cheaply. A plausible-but-unconfirmed cause can be wrong while the real one sits one layer over.
+3. Prove the mechanism before believing it. Evaluate on the running target to confirm the hypothesis cheaply: `tab.evaluate` on a `browser` tab in `eval` for a page; for a process started under `debug`, `pause`, then `stack_trace` and `evaluate` (`skill://diagnosing-bugs/references/debugger.md`). Or hotfix the live code without reloading. A plausible-but-unconfirmed cause can be wrong while the real one sits one layer over.
 4. Map the finding back to source: file, symbol, the line that allocates or schedules.
 5. Throughput checkpoint stays one line: `throughput checkpoint: n/a, read-only forensics`.
 
-**Reply:** the signal captured, the reduced finding, how you proved the mechanism, the source location, artifact paths. No fix unless asked; hand back to Bug fix or Perf once the cause is known.
+**Reply:** the signal captured, the reduced finding, how you proved the mechanism, the source location, artifact paths. No fix unless asked; once the cause is known, hand back to Bug fix (Phase 5 of `skill://diagnosing-bugs`) or Perf.

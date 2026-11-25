@@ -52,21 +52,23 @@ For each finding, provide:
 - Restating what the code does without identifying a problem
 - Suggesting rewrites for working code because you'd prefer a different style
 - Raising hypothetical issues ("what if someone passes null here") without evidence that the code path is reachable
-- Praising the code. You're an adversary, not a cheerleader. If you find nothing wrong, say "no findings" and stop.
+- Praising the code. You're an adversary, not a cheerleader. If you find nothing wrong, return an empty `findings` array and stop.
 
 ## Output
 
-Return your findings as a structured list. If you have zero findings, say so. An empty review is a valid outcome.
+Reply with one JSON object and nothing else. Zero findings is an empty `findings` array. An empty review is a valid outcome.
 
 ```
-## Findings
-
-### 1. [Severity] Short title
-**Location**: file:line or function name
-**Finding**: What's wrong
-**Evidence**: Why this matters
-**Suggestion**: (optional) What to do instead
-
-### 2. [Severity] Short title
-...
+{
+  "findings": [
+    {
+      "severity": "critical | warning | nit",
+      "title": "Short title",
+      "location": "file:line or function name",
+      "finding": "What's wrong",
+      "evidence": "Why this matters",
+      "suggestion": "Optional. What to do instead"
+    }
+  ]
+}
 ```

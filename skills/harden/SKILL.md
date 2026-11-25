@@ -1,6 +1,6 @@
 ---
 name: harden
-description: "Use when asked to harden, audit security, run /harden, or review OWASP/SLSA posture: a report-only whole-repo audit of security, supply chain, reliability, and tests. Not for making code more robust; this skill writes no code."
+description: "Manual only. Load it when the user names this skill or types /harden: a report-only whole-repo audit of security, supply chain, reliability, and tests against OWASP and SLSA. Not for making code more robust; this skill writes no code."
 license: MIT
 disable-model-invocation: true
 ---
