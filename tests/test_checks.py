@@ -163,7 +163,7 @@ Send it.
 """
 
 
-class CrossReferenceTests(unittest.TestCase):
+class SkillsCheckCase(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, self.tmp, True)
@@ -183,13 +183,15 @@ class CrossReferenceTests(unittest.TestCase):
         for n in needles:
             self.assertIn(n, findings[0])
 
+
+class CrossReferenceTests(SkillsCheckCase):
     def test_correct_references_pass(self):
         code, out, _ = self.check(
             '# Ref\n\nCompanion to "Hand-off" in SKILL.md. Companion to step 2 in SKILL.md.\n'
             'Phase A grounds, Phase B sign-off, Phase C builds. Steps 1 and 2 in SKILL.md.\n'
             'A quoted "word" elsewhere, and in a skill file the "Missing" is not claimed.\n')
         self.assertEqual(code, 0, out)
-        self.assertEqual(out.strip().splitlines()[-1], 'PASS 1 skills, 0 failures, 0 over budget')
+        self.assertEqual(out.strip().splitlines()[-1], 'PASS 1 skills (1 auto-routable, 0 hidden), 0 failures, 0 over budget')
 
     def test_quoted_section_that_does_not_exist(self):
         self.assertFails('# Ref\n\nCompanion to "Reviewer" in SKILL.md.\n',
@@ -224,6 +226,102 @@ class CrossReferenceTests(unittest.TestCase):
     def test_version_number_in_vendoring_note_fails(self):
         write(os.path.join(self.root, 'demo', 'VENDORED.md'), '# Vendored\n\n- Source: upstream at commit abc1234.\n- Skill v2.1.0.\n')
         self.assertFails('# Ref\n', 'demo/VENDORED.md:4', 'record the upstream commit')
+
+
+class OmpFirstTests(SkillsCheckCase):
+    def add_skill(self, name, frontmatter='', description='Another skill.'):
+        write(os.path.join(self.root, name, 'SKILL.md'),
+              '---\nname: %s\ndescription: %s\n%s---\n\n# Other\n' % (name, description, frontmatter))
+        write(os.path.join(self.root, name, 'scripts', 'tool.py'), 'pass\n')
+
+    def assertPasses(self, reference):
+        code, out, _ = self.check(reference)
+        self.assertEqual(code, 0, out)
+        self.assertEqual([l for l in out.splitlines() if l.startswith('FAIL')], [], out)
+
+    def test_omp_tools_and_internal_urls_pass(self):
+        self.assertPasses(
+            '# Ref\n\nAsk through `ask`, track with `todo`, fan out with one `task` item per slice and `wait`.\n'
+            'Ground with `lsp` and `ast_grep` before `grep`; rewrite with `ast_edit`; step with `debug`.\n'
+            'Drive the page with `browser` in `eval`, or `computer` when it is enabled.\n'
+            'Read `pr://12`, `pr://12/diff/all`, `issue://3`, `agent://Runner/summary` and `conflict://1`.\n')
+
+    def test_another_harness_tool_still_fails(self):
+        self.assertFails('# Ref\n\nAsk with `ask_user_question`.\n', 'ref.md:3', "one harness's tool name")
+
+    def test_posix_temp_path_still_fails(self):
+        self.assertFails('# Ref\n\nWrite it to /tmp/out.json.\n', 'ref.md:3', 'OS temp directory')
+
+    def test_path_into_another_skill_fails_from_skill_md(self):
+        self.add_skill('other')
+        write(os.path.join(self.root, 'demo', 'SKILL.md'), SKILL + '\nRun `../other/scripts/tool.py`.\n')
+        self.assertFails('# Ref\n', 'demo/SKILL.md', '../other/ leaves the skill', 'skill://other/<path>')
+
+    def test_path_into_another_skill_fails_from_a_reference(self):
+        self.add_skill('other')
+        self.assertFails('# Ref\n\nSee [the tool](../../other/scripts/tool.py).\n', 'ref.md:3', '../other/ leaves the skill')
+
+    def test_path_into_a_skill_that_is_not_there_fails(self):
+        self.assertFails('# Ref\n\nSee ../../ghost/references/notes.md.\n', 'ref.md:3', '../ghost/ leaves the skill')
+
+    def test_parent_path_inside_the_skill_passes(self):
+        write(os.path.join(self.root, 'demo', 'playbooks', 'ship.md'), '# Ship\n')
+        self.assertPasses('# Ref\n\nBack to [Start](../SKILL.md#start), then [ship](../playbooks/ship.md).\n'
+                          'In the target repo, compare against `../sibling-repo/src`.\n')
+
+    def test_skill_uris_that_resolve_pass(self):
+        self.add_skill('other')
+        self.assertPasses('# Ref\n\nRead skill://demo and skill://demo/references/ref.md.\n'
+                          'Run `python skill://other/scripts/tool.py list`, described in skill://other/SKILL.md.\n'
+                          'A placeholder such as `skill://<name>/<path>` is not a reference.\n')
+
+    def test_skill_uri_to_a_missing_skill_fails(self):
+        self.assertFails('# Ref\n\nRead skill://ghost first.\n', 'ref.md:3', 'skill://ghost names no skill')
+
+    def test_skill_uri_to_a_missing_file_fails(self):
+        self.assertFails('# Ref\n\nRead skill://demo/references/missing.md.\n', 'ref.md:3',
+                         'skill://demo/references/missing.md does not exist')
+
+    def test_skill_uri_that_climbs_out_of_its_skill_fails(self):
+        self.add_skill('other')
+        self.assertFails('# Ref\n\nRead skill://demo/../other/SKILL.md.\n', 'ref.md:3',
+                         'skill://demo/../other/SKILL.md climbs with `..`')
+
+    def test_cited_parent_path_inside_the_skill_must_exist(self):
+        playbook = os.path.join(self.root, 'demo', 'playbooks', 'ship.md')
+        write(playbook, '# Ship\n\nTriage per `../references/ref.md`.\n')
+        self.assertPasses('# Ref\n')
+        write(playbook, '# Ship\n\nTriage per `../references/gone.md`.\n')
+        self.assertFails('# Ref\n', 'demo/playbooks/ship.md:3', 'cited path does not exist: ../references/gone.md')
+
+    def test_named_skill_that_exists_passes(self):
+        self.add_skill('other')
+        self.assertPasses('# Ref\n\nShip through the **other** skill. The **demo** skill covers the rest.\n')
+
+    def test_named_skill_that_is_not_there_fails(self):
+        self.assertFails('# Ref\n\nShip through the **ghost** skill.\n', 'ref.md:3', '"the **ghost** skill"', 'if installed')
+
+    def test_named_skill_marked_optional_passes(self):
+        self.assertPasses('# Ref\n\nUse the **ghost** skill\'s `contract` block, if installed. If the **phantom** skill is installed, run it.\n'
+                          'If installed, use the **wraith** skill.\n')
+
+    def test_optional_marker_in_a_later_sentence_does_not_excuse_the_name(self):
+        self.assertFails('# Ref\n\nShip through the **ghost** skill. Use tmux if installed.\n', 'ref.md:3', '"the **ghost** skill"')
+
+    def test_verdict_counts_hidden_skills(self):
+        self.add_skill('other', 'disable-model-invocation: true\n', 'Manual only. Load it when the user names it.')
+        self.add_skill('third', 'disable-model-invocation: false\n')
+        code, out, _ = self.check('# Ref\n')
+        self.assertEqual(code, 0, out)
+        self.assertEqual(out.strip().splitlines()[-1], 'PASS 3 skills (2 auto-routable, 1 hidden), 0 failures, 0 over budget')
+
+    def test_hidden_skill_must_say_manual_only(self):
+        self.add_skill('other', 'disable-model-invocation: true\n', 'Use when editing a skill.')
+        self.add_skill('folded', 'disable-model-invocation: true\n', '>-\n  Manual only. Load it when the user names it.')
+        code, out, _ = self.check('# Ref\n')
+        self.assertEqual(code, 1, out)
+        self.assertIn('other: disable-model-invocation is true, so the description must start "Manual only."', out)
+        self.assertNotIn('folded:', out)
 
 
 class TestsCheckTests(unittest.TestCase):

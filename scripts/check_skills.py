@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
-"""Gate for skills/: harness-neutral wording, resolvable paths, size budget.
+"""Gate for skills/: OMP-first wording, resolvable paths and skill references, size budget.
 
-Fails (exit 1) on a harness leak, a broken frontmatter, a version number in a
-frontmatter or a VENDORED.md, a path a skill cites that does not exist, or a
-reference file that names a part of its own SKILL.md that is not there.
+OMP's own tools and internal URLs (skill://, pr://, issue://, agent://, conflict://) pass.
+Fails (exit 1) on another harness's tool, CLI, path or config key, a broken frontmatter,
+a version number in a frontmatter or a VENDORED.md, a path a skill cites that does not
+exist, a `../` path that leaves its skill for another one, a skill:// URI or a
+"the **name** skill" reference that names nothing under skills/, or a reference file that
+names a part of its own SKILL.md that is not there.
 Prints a warning for a SKILL.md over the size budget.
+The verdict counts the skills a model can route to on its own and the hidden ones
+(`disable-model-invocation: true`). A hidden skill's description starts "Manual only.",
+because Muse Code loads it as an ordinary skill and routes on that description.
 The last line is the verdict, `PASS ...` or `FAIL ...`.
 Run from anywhere: python scripts/check_skills.py [--root <skills dir>]
 """
@@ -18,13 +24,13 @@ BUDGET = 8000  # bytes of SKILL.md, about 2,000 tokens
 VENDORED = {'declauding'}  # upstream text, checked for frontmatter only
 VERSION_NUMBER = re.compile(r'\bv?\d+\.\d+\.\d+\b')  # goes stale on every upstream release; the commit hash is the record
 
-# One harness's tool, CLI, path or config key written as if every harness had it.
+# Another harness's tool, CLI, path or config key. OMP's tools and internal URLs are the target and pass.
 LEAKS = [
     (r'~/\.hermes|hermes/cache|HERMES_HOME', 'Hermes path'),
     (r'\bstate\.db\b|\bsession export\b|\bhermes sessions\b|\bsession_search\b', 'Hermes session store; use the recall skill\'s scripts/sessions.py'),
     (r'\bsubagent chat\b|delegation\.model|quick_commands|trusted_project_dirs', 'Hermes CLI or config key'),
     (r'`(?:search_files|delegate_task|ask_user_question|skill_view|skill_manage)`', 'one harness\'s tool name'),
-    (r'`tasks?` (?:per call|entry|entries)|up to \d+ `tasks`', 'one harness\'s subagent call shape'),
+    (r'`tasks` per call|up to \d+ `tasks`', 'one harness\'s subagent call shape'),
     (r'pi-dotfiles|/mnt/skills|[A-Z]:\\Users\\|/home/[a-z]+/|/Users/[a-z]+/', 'machine-specific path'),
     (r'\bHermes-only\b|\bpi sessions\b|\bin Hermes\b(?! *[:,])', 'harness named outside a labelled branch'),
     (r'(?<![\w}:.-])/tmp/', 'POSIX-only temp path; say the OS temp directory (it does not resolve for native Windows tools)'),
@@ -37,7 +43,16 @@ STEP_REF = re.compile(r'\bsteps?\s+(\d+(?:\s*(?:,|and|to|-|\u2013)\s*\d+)*)\s+in
 PHASE_REF = re.compile(r'\bPhase ([A-Z])\b(?:\s+((?i:sign-off|checkpoint|approval))\b)?')
 
 WORD = re.compile(r'[a-z][a-z-]+')
-CITED = re.compile(r'`((?:\.\./[a-z-]+/)?(?:references|reference|scripts|playbooks|agents|schemas)/[A-Za-z0-9_./-]+\.[a-z]+)`')
+CITED = re.compile(r'`((?:\.\./)?(?:references|reference|scripts|playbooks|agents|schemas)/[A-Za-z0-9_./-]+\.[a-z]+)`')
+SKILL_PARTS = {'SKILL.md', 'references', 'reference', 'scripts', 'playbooks', 'agents', 'schemas'}
+CLIMB = re.compile(r'(?<![\w./])((?:\.\./)+)([A-Za-z0-9_-]+)/([A-Za-z0-9_.-]*)')
+SKILL_URI = re.compile(r'skill://([a-z0-9][a-z0-9-]*)((?:/[A-Za-z0-9_.-]+)*)')
+NAMED_SKILL = re.compile(r'\b[Tt]he \*\*([a-z0-9][a-z0-9-]*)\*\* skill\b')
+SENTENCE_END = re.compile(r'[.;:](?:\s|$)')
+OPTIONAL_SKILL = re.compile(r'\b(?:if|is) installed\b', re.I)
+FRONTMATTER = re.compile(r'---\r?\n(.*?)\r?\n---\r?\n', re.S)
+HIDDEN = re.compile(r'^disable-model-invocation:\s*true\s*$', re.M)
+MANUAL = re.compile(r'^description:\s*(?:[>|]-?\s+)?["\']?Manual only\.', re.M)
 
 
 def outline(path):
@@ -95,7 +110,35 @@ def check_xrefs(skill, base, rel, text, out):
     return found
 
 
-def check(skill, root):
+def check_links(rel, n, line, depth, names, root):
+    """Paths and names on one line that point at another skill."""
+    found = []
+    for ups, first, second in CLIMB.findall(line):
+        if ups.count('../') == depth + 1 and (first in names or second in SKILL_PARTS):
+            found.append('%s:%d: ../%s/ leaves the skill and OMP\'s skill:// resolver rejects `..`; write skill://%s/<path>'
+                         % (rel, n, first, first))
+    for name, tail in SKILL_URI.findall(line):
+        tail = tail.rstrip('.').lstrip('/')
+        if name not in names:
+            found.append('%s:%d: skill://%s names no skill under skills/' % (rel, n, name))
+        elif '..' in tail.split('/'):
+            found.append('%s:%d: skill://%s/%s climbs with `..`, which OMP\'s skill:// resolver rejects' % (rel, n, name, tail))
+        elif tail and not os.path.exists(os.path.join(root, name, *tail.split('/'))):
+            found.append('%s:%d: skill://%s/%s does not exist' % (rel, n, name, tail))
+    for m in NAMED_SKILL.finditer(line):
+        sentence = SENTENCE_END.split(line[:m.start()])[-1] + m.group(0) + SENTENCE_END.split(line[m.end():], 1)[0]
+        if m.group(1) not in names and not OPTIONAL_SKILL.search(sentence):
+            found.append('%s:%d: "the **%s** skill" names no skill under skills/; fix the name or add "if installed"'
+                         % (rel, n, m.group(1)))
+    return found
+
+
+def is_hidden(path):
+    m = FRONTMATTER.match(open(path, encoding='utf-8').read()) if os.path.isfile(path) else None
+    return bool(m and HIDDEN.search(m.group(1)))
+
+
+def check(skill, root, names):
     errors, warnings = [], []
     base = os.path.join(root, skill)
     path = os.path.join(base, 'SKILL.md')
@@ -109,6 +152,8 @@ def check(skill, root):
         errors.append('%s: frontmatter name must equal the directory name' % skill)
     if not re.search(r'^description:\s*\S', front, re.M):
         errors.append('%s: frontmatter has no description' % skill)
+    elif HIDDEN.search(front) and not MANUAL.search(front):
+        errors.append('%s: disable-model-invocation is true, so the description must start "Manual only."' % skill)
     if re.search(r'^\s*version:', front, re.M):
         errors.append('%s/SKILL.md: frontmatter carries a version; delete the line' % skill)
     vendored = os.path.join(base, 'VENDORED.md')
@@ -128,12 +173,14 @@ def check(skill, root):
                 continue
             full = os.path.join(dirpath, fn)
             rel = os.path.relpath(full, root).replace('\\', '/')
+            depth = rel.count('/') - 1
             if full != path:
                 errors += check_xrefs(skill, base, rel, open(full, encoding='utf-8').read(), out)
             for n, line in enumerate(open(full, encoding='utf-8'), 1):
                 for pattern, why in LEAKS:
                     if re.search(pattern, line):
                         errors.append('%s:%d: %s' % (rel, n, why))
+                errors += check_links(rel, n, line, depth, names, root)
                 for cited in CITED.findall(line):
                     # a cited path resolves against the skill root or the citing file's directory
                     if not any(os.path.exists(os.path.normpath(os.path.join(d, cited))) for d in (base, dirpath)):
@@ -153,15 +200,18 @@ def main():
     if not skills:
         print('ERROR no skill directories under %s' % root)
         sys.exit(2)
+    names = {s for s in skills if os.path.isfile(os.path.join(root, s, 'SKILL.md'))}
+    hidden = sum(1 for s in names if is_hidden(os.path.join(root, s, 'SKILL.md')))
     for skill in skills:
-        e, w = check(skill, root)
+        e, w = check(skill, root, names)
         errors += e
         warnings += w
     for line in warnings:
         print('warn  ' + line)
     for line in errors:
         print('FAIL  ' + line)
-    print('%s %d skills, %d failures, %d over budget' % ('FAIL' if errors else 'PASS', len(skills), len(errors), len(warnings)))
+    print('%s %d skills (%d auto-routable, %d hidden), %d failures, %d over budget' % (
+        'FAIL' if errors else 'PASS', len(skills), len(names) - hidden, hidden, len(errors), len(warnings)))
     sys.exit(1 if errors else 0)
 
 
