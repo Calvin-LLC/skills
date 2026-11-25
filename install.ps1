@@ -102,7 +102,6 @@ if ($Source) {
 $TargetRoots = @(
   (Join-Path $UserHome ".agents\skills"),
   (Join-Path $UserHome ".claude\skills"),
-  (Join-Path $UserHome ".pi\agent\skills"),
   (Join-Path $UserHome ".hermes\skills"),
   (Join-Path $UserHome ".config\muse\skills"),
   (Join-Path $UserHome ".codex\skills")
@@ -126,6 +125,10 @@ foreach ($Root in $TargetRoots) {
     Write-Host "Muse Code manages its own copies -> $Root"
     continue
   }
+  if (-not (Test-Path -LiteralPath (Split-Path -Parent $Root))) {
+    Write-Host "Skipped $Root. Its harness is not installed (no $(Split-Path -Parent $Root))"
+    continue
+  }
   New-Item -ItemType Directory -Force -Path $Root | Out-Null
   foreach ($Skill in $SkillDirs) {
     $LinkPath = Join-Path $Root $Skill.Name
@@ -138,31 +141,35 @@ foreach ($Root in $TargetRoots) {
   Write-Host "Linked all skills -> $Root"
 }
 
-$OmpSkills = Join-Path $UserHome ".omp\agent\skills"
-if (Test-Path -LiteralPath $OmpSkills) {
-  foreach ($Entry in Get-ChildItem -LiteralPath $OmpSkills -Force -Attributes ReparsePoint) {
+foreach ($Extra in @((Join-Path $UserHome ".omp\agent\skills"), (Join-Path $UserHome ".pi\agent\skills"))) {
+  if (-not (Test-Path -LiteralPath $Extra)) { continue }
+  foreach ($Entry in Get-ChildItem -LiteralPath $Extra -Force -Attributes ReparsePoint) {
     $Target = "$($Entry.Target | Select-Object -First 1)" -replace '^\\\\\?\\', ''
     if ($Target.StartsWith($SkillsDir, [StringComparison]::OrdinalIgnoreCase)) { Remove-Entry $Entry.FullName }
   }
-  if (-not (Get-ChildItem -LiteralPath $OmpSkills -Force)) { Remove-Item -LiteralPath $OmpSkills }
+  if (-not (Get-ChildItem -LiteralPath $Extra -Force)) { Remove-Item -LiteralPath $Extra }
 }
 Write-Host "OMP loads skills from its plugin: omp plugin install github:Calvin-LLC/skills, then omp plugin upgrade @calvin-llc/skills after each push"
+Write-Host "Pi loads skills from $(Join-Path $UserHome '.agents\skills')"
 
 # Muse Code copies skills into its own folder and tracks them in .muse; only muse may change that folder.
-$Muse = Get-MuseCommand
+$Muse = if (Test-Path -LiteralPath (Split-Path -Parent $MuseSkills)) { Get-MuseCommand }
 if ($Muse) {
   if ($MuseManaged) {
+    $LockPath = Join-Path $MuseSkills ".muse\lock.json"
+    $Lock = if (Test-Path -LiteralPath $LockPath) { Get-Content -Raw -LiteralPath $LockPath | ConvertFrom-Json }
     foreach ($Skill in $SkillDirs) {
-      if (Test-Path (Join-Path $MuseSkills $Skill.Name)) {
+      $Installed = Test-Path (Join-Path $MuseSkills $Skill.Name)
+      $Tracked = if ($Lock.skills) { "$($Lock.skills.($Skill.Name).source.path)" -replace '^\\\\\?\\', '' } else { "" }
+      if ($Installed -and $Tracked -eq $Skill.FullName) {
         $MuseArgs = @("skills", "update", $Skill.Name)
       } else {
         $MuseArgs = @("skills", "install", $Skill.FullName, "--scope", "user")
+        if ($Installed) { $MuseArgs += "--force" }
       }
       $Result = Invoke-Muse $MuseArgs
       if ($Result.Code -ne 0) { Write-Warning "muse $($MuseArgs -join ' ') exited $($Result.Code): $($Result.Output)" }
     }
-    $LockPath = Join-Path $MuseSkills ".muse\lock.json"
-    $Lock = if (Test-Path -LiteralPath $LockPath) { Get-Content -Raw -LiteralPath $LockPath | ConvertFrom-Json }
     if ($Lock.skills) {
       foreach ($Entry in $Lock.skills.PSObject.Properties) {
         if (-not (Test-RemovedSkill $Entry.Value.source.path)) { continue }
@@ -191,8 +198,7 @@ if (Test-Path (Join-Path $Dest "SOUL.md")) {
     (Join-Path $UserHome ".config\muse\AGENTS.md")
   )
   foreach ($SoulLink in $SoulLinks) {
-    $SRoot = Split-Path -Parent $SoulLink
-    if (-not (Test-Path $SRoot)) { New-Item -ItemType Directory -Force -Path $SRoot | Out-Null }
+    if (-not (Test-Path -LiteralPath (Split-Path -Parent $SoulLink))) { continue }
     Remove-Entry $SoulLink
     # A symlink follows git rewriting the file; a hard link does not. Hard link only without symlink rights.
     try {
@@ -205,24 +211,37 @@ if (Test-Path (Join-Path $Dest "SOUL.md")) {
 }
 
 $OmpRules = Join-Path $UserHome ".omp\agent\rules"
-$RulesDir = [IO.Path]::GetFullPath((Join-Path $Dest "rules")) + "\"
-New-Item -ItemType Directory -Force -Path $OmpRules | Out-Null
-if (Test-Path -LiteralPath $RulesDir) {
-  foreach ($Rule in Get-ChildItem -LiteralPath $RulesDir -Filter "*.md" -File) {
-    $RuleLink = Join-Path $OmpRules $Rule.Name
-    Remove-Entry $RuleLink
-    try {
-      New-Item -ItemType SymbolicLink -Path $RuleLink -Target $Rule.FullName | Out-Null
-    } catch {
-      New-Item -ItemType HardLink -Path $RuleLink -Target $Rule.FullName | Out-Null
+if (Test-Path -LiteralPath (Split-Path -Parent $OmpRules)) {
+  $RulesDir = [IO.Path]::GetFullPath((Join-Path $Dest "rules")) + "\"
+  $RuleList = Join-Path $UserHome ".agents\calvin-skills-omp-rules.txt"
+  $RuleNames = @()
+  $HardLinked = @()
+  New-Item -ItemType Directory -Force -Path $OmpRules | Out-Null
+  if (Test-Path -LiteralPath $RulesDir) {
+    foreach ($Rule in Get-ChildItem -LiteralPath $RulesDir -Filter "*.md" -File) {
+      $RuleLink = Join-Path $OmpRules $Rule.Name
+      Remove-Entry $RuleLink
+      try {
+        New-Item -ItemType SymbolicLink -Path $RuleLink -Target $Rule.FullName | Out-Null
+      } catch {
+        New-Item -ItemType HardLink -Path $RuleLink -Target $Rule.FullName | Out-Null
+        $HardLinked += $Rule.Name
+      }
+      $RuleNames += $Rule.Name
     }
   }
+  foreach ($Entry in Get-ChildItem -LiteralPath $OmpRules -Force -Attributes ReparsePoint) {
+    $Target = "$($Entry.Target | Select-Object -First 1)" -replace '^\\\\\?\\', ''
+    if ($Target.StartsWith($RulesDir, [StringComparison]::OrdinalIgnoreCase) -and -not (Test-Path -LiteralPath $Target)) { Remove-Entry $Entry.FullName }
+  }
+  if (Test-Path -LiteralPath $RuleList) {
+    foreach ($Name in [IO.File]::ReadAllLines($RuleList)) {
+      if ($Name -match '^[^\\/:]+\.md$' -and $RuleNames -notcontains $Name) { Remove-Entry (Join-Path $OmpRules $Name) }
+    }
+  }
+  [IO.File]::WriteAllLines($RuleList, [string[]]$HardLinked)
+  Write-Host "Linked OMP rules -> $OmpRules"
 }
-foreach ($Entry in Get-ChildItem -LiteralPath $OmpRules -Force -Attributes ReparsePoint) {
-  $Target = "$($Entry.Target | Select-Object -First 1)" -replace '^\\\\\?\\', ''
-  if ($Target.StartsWith($RulesDir, [StringComparison]::OrdinalIgnoreCase) -and -not (Test-Path -LiteralPath $Target)) { Remove-Entry $Entry.FullName }
-}
-Write-Host "Linked OMP rules -> $OmpRules"
 
 Write-Host "Invoke a skill: Claude Code/Hermes/Muse Code: /<name> | OMP/Pi: /skill:<name> | Codex: `$<name>"
 $Head = (& git -C $Dest rev-parse --short HEAD).Trim()

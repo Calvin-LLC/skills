@@ -14,6 +14,7 @@ REPO = Path(__file__).resolve().parents[1]
 HOME = Path(os.environ.get("SKILLS_HOME") or Path.home())
 CLONE = HOME / ".agents" / "calvin-skills"
 OMP_AGENT = HOME / ".omp" / "agent"
+RULE_LIST = HOME / ".agents" / "calvin-skills-omp-rules.txt"
 LIST_LIMIT = 6
 
 
@@ -37,7 +38,6 @@ def skill_roots():
     return [
         HOME / ".agents" / "skills",
         claude / "skills",
-        HOME / ".pi" / "agent" / "skills",
         HOME / ".hermes" / "skills",
         muse / "skills",
         codex / "skills",
@@ -109,6 +109,14 @@ def dangling_links(root, skills_dir):
     return gone
 
 
+def dropped_rules(omp_rules, rules_dir):
+    try:
+        listed = RULE_LIST.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return []
+    return [name for name in listed if name and not (rules_dir / name).exists() and os.path.lexists(omp_rules / name)]
+
+
 def muse_leftovers(root, skills_dir):
     try:
         lock = json.loads((root / ".muse" / "lock.json").read_text(encoding="utf-8"))
@@ -176,6 +184,12 @@ def main():
         if gone:
             findings.append("%s links %d skills the clone no longer has: %s" % (root, len(gone), short_list(gone)))
 
+    for root in (OMP_AGENT / "skills", HOME / ".pi" / "agent" / "skills"):
+        twice = [e.name for e in root.iterdir() if real(e).startswith(real(skills_dir) + os.sep)] if root.is_dir() else []
+        if twice:
+            findings.append("%s links %d skills its harness already loads from elsewhere, which lists them twice: %s"
+                            % (root, len(twice), short_list(twice)))
+
     soul = CLONE / "SOUL.md"
     if soul.is_file():
         wanted = soul.read_bytes()
@@ -197,7 +211,7 @@ def main():
             findings.append("%s lacks %d rules: %s" % (omp_rules, len(missing), short_list(missing)))
         if stale:
             findings.append("%s has %d rules that differ from the clone: %s" % (omp_rules, len(stale), short_list(stale)))
-        gone = dangling_links(omp_rules, rules_dir) if omp_rules.is_dir() else []
+        gone = set(dangling_links(omp_rules, rules_dir) + dropped_rules(omp_rules, rules_dir)) if omp_rules.is_dir() else []
         if gone:
             findings.append("%s links %d rules the clone no longer has: %s" % (omp_rules, len(gone), short_list(gone)))
 

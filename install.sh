@@ -95,6 +95,7 @@ if command -v muse >/dev/null 2>&1; then
     case "${muse_cmd}" in "${USER_HOME}"/*) ;; *) muse_cmd="" ;; esac
   fi
 fi
+[ -d "${MUSE_ROOT}" ] || muse_cmd=""
 muse_managed=0
 [ -d "${MUSE_ROOT}/skills/.muse" ] && muse_managed=1
 
@@ -102,13 +103,16 @@ muse_managed=0
 for target_root in \
   "${USER_HOME}/.agents/skills" \
   "${CLAUDE_ROOT}/skills" \
-  "${USER_HOME}/.pi/agent/skills" \
   "${USER_HOME}/.hermes/skills" \
   "${MUSE_ROOT}/skills" \
   "${CODEX_ROOT}/skills"
 do
   if [ "${muse_managed}" = 1 ] && [ "${target_root}" = "${MUSE_ROOT}/skills" ]; then
     echo "Muse Code manages its own copies -> ${target_root}"
+    continue
+  fi
+  if [ ! -d "$(dirname "${target_root}")" ]; then
+    echo "Skipped ${target_root}. Its harness is not installed (no $(dirname "${target_root}"))"
     continue
   fi
   mkdir -p "${target_root}"
@@ -127,13 +131,15 @@ do
   echo "Linked all skills -> ${target_root}"
 done
 
-omp_skills="${USER_HOME}/.omp/agent/skills"
-for entry in "${omp_skills}"/*; do
-  [ -L "${entry}" ] || continue
-  case "$(readlink "${entry}")" in "${DEST}/skills/"*) rm -f "${entry}" ;; esac
+for extra in "${USER_HOME}/.omp/agent/skills" "${USER_HOME}/.pi/agent/skills"; do
+  for entry in "${extra}"/*; do
+    [ -L "${entry}" ] || continue
+    case "$(readlink "${entry}")" in "${DEST}/skills/"*) rm -f "${entry}" ;; esac
+  done
+  rmdir "${extra}" 2>/dev/null || true
 done
-rmdir "${omp_skills}" 2>/dev/null || true
 echo "OMP loads skills from its plugin: omp plugin install github:Calvin-LLC/skills, then omp plugin upgrade @calvin-llc/skills after each push"
+echo "Pi loads skills from ${USER_HOME}/.agents/skills"
 
 # Muse Code copies skills into its own folder and tracks them in .muse; only muse may change that folder.
 if [ -n "${muse_cmd}" ]; then
@@ -141,8 +147,10 @@ if [ -n "${muse_cmd}" ]; then
     for skill_dir in "${DEST}"/skills/*; do
       [ -f "${skill_dir}/SKILL.md" ] || continue
       skill_name="$(basename "${skill_dir}")"
-      if [ -e "${MUSE_ROOT}/skills/${skill_name}" ]; then
+      if [ -e "${MUSE_ROOT}/skills/${skill_name}" ] && grep -F -q "${DEST}/skills/${skill_name}\"" "${MUSE_ROOT}/skills/.muse/lock.json" 2>/dev/null; then
         set -- skills update "${skill_name}"
+      elif [ -e "${MUSE_ROOT}/skills/${skill_name}" ]; then
+        set -- skills install "${skill_dir}" --scope user --force
       else
         set -- skills install "${skill_dir}" --scope user
       fi
@@ -159,8 +167,7 @@ if [ -n "${muse_cmd}" ]; then
   fi
   for skill_dir in "${DEST}"/skills/*; do
     [ -f "${skill_dir}/SKILL.md" ] || continue
-    skill_name="$(basename "${skill_dir}")"
-    "${muse_cmd}" skills enable "${skill_name}" --scope user >/dev/null 2>&1 || true
+    "${muse_cmd}" skills enable "$(basename "${skill_dir}")" --scope user >/dev/null 2>&1 || true
   done
   echo "Enabled all skills in Muse Code"
 elif [ "${muse_managed}" = 1 ]; then
@@ -177,23 +184,25 @@ if [ -f "${DEST}/SOUL.md" ]; then
     "${USER_HOME}/.omp/agent/RULES.md" \
     "${MUSE_ROOT}/AGENTS.md"
   do
-    mkdir -p "$(dirname "${soul_link}")"
+    [ -d "$(dirname "${soul_link}")" ] || continue
     ln -sfn "${DEST}/SOUL.md" "${soul_link}"
     echo "Linked SOUL.md -> ${soul_link}"
   done
 fi
 
 omp_rules="${USER_HOME}/.omp/agent/rules"
-mkdir -p "${omp_rules}"
-for rule in "${DEST}"/rules/*.md; do
-  [ -f "${rule}" ] || continue
-  ln -sfn "${rule}" "${omp_rules}/$(basename "${rule}")"
-done
-for entry in "${omp_rules}"/*; do
-  [ -L "${entry}" ] && [ ! -e "${entry}" ] || continue
-  case "$(readlink "${entry}")" in "${DEST}/rules/"*) rm -f "${entry}" ;; esac
-done
-echo "Linked OMP rules -> ${omp_rules}"
+if [ -d "${USER_HOME}/.omp/agent" ]; then
+  mkdir -p "${omp_rules}"
+  for rule in "${DEST}"/rules/*.md; do
+    [ -f "${rule}" ] || continue
+    ln -sfn "${rule}" "${omp_rules}/$(basename "${rule}")"
+  done
+  for entry in "${omp_rules}"/*; do
+    [ -L "${entry}" ] && [ ! -e "${entry}" ] || continue
+    case "$(readlink "${entry}")" in "${DEST}/rules/"*) rm -f "${entry}" ;; esac
+  done
+  echo "Linked OMP rules -> ${omp_rules}"
+fi
 
 echo ""
 echo "Installed skills:"

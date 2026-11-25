@@ -23,9 +23,9 @@ elif not WINDOWS and not shutil.which("sh"):
 
 SOUL = "# soul\nkeep it short\n"
 STUB_CHECK = "import os, sys\nsys.exit(1 if os.path.exists('BLOCK') else 0)\n"
-SKILL_ROOTS = [".agents/skills", ".claude/skills", ".pi/agent/skills",
-               ".hermes/skills", ".config/muse/skills", ".codex/skills"]
+SKILL_ROOTS = [".agents/skills", ".claude/skills", ".hermes/skills", ".config/muse/skills", ".codex/skills"]
 SOUL_LINKS = [".pi/agent/SOUL.md", ".hermes/SOUL.md", ".agents/SOUL.md", ".omp/agent/RULES.md", ".config/muse/AGENTS.md"]
+HARNESS_HOMES = [".claude", ".hermes", ".config/muse", ".codex", ".pi/agent", ".omp/agent"]
 RULE = "---\ncondition: 'x'\nscope: text\n---\nBody.\n"
 
 
@@ -39,6 +39,14 @@ def remove_link(path):
     (os.rmdir if WINDOWS else os.unlink)(path)
 
 
+def make_link(target, link):
+    if WINDOWS:
+        import _winapi
+        _winapi.CreateJunction(str(target), str(link))
+    else:
+        os.symlink(target, link)
+
+
 @unittest.skipIf(SKIP_REASON, SKIP_REASON or "")
 class InstallTest(unittest.TestCase):
     def setUp(self):
@@ -46,6 +54,8 @@ class InstallTest(unittest.TestCase):
         self.addCleanup(shutil.rmtree, tmp, onerror=forget_readonly)
         self.home = tmp / "home"
         self.home.mkdir()
+        for harness in HARNESS_HOMES:
+            (self.home / harness).mkdir(parents=True)
         self.source = tmp / "source"
         self.clone = self.home / ".agents" / "calvin-skills"
         env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
@@ -145,6 +155,19 @@ class InstallTest(unittest.TestCase):
         rule = self.home / ".omp" / "agent" / "rules" / "one.md"
         self.assertEqual(rule.read_text(encoding="utf-8").replace("\r\n", "\n"), RULE)
 
+    def test_harness_that_is_not_installed_gets_no_folder(self):
+        absent = [".hermes", ".codex", ".pi", ".omp", ".config"]
+        for harness in absent:
+            shutil.rmtree(self.home / harness)
+        muse_calls = self.install_muse_stub()
+        self.installed()
+        for harness in absent:
+            self.assertFalse(os.path.lexists(self.home / harness), harness)
+        self.assertFalse(muse_calls.exists(), "muse was run for a harness that is not installed")
+        self.assertEqual(os.path.realpath(self.home / ".claude" / "skills" / "alpha"),
+                         os.path.realpath(self.clone / "skills" / "alpha"))
+        self.assertVerdict(self.check(), "PASS", 0)
+
     def test_check_skips_without_clone(self):
         self.assertVerdict(self.check(), "SKIP", 0)
 
@@ -225,6 +248,20 @@ class InstallTest(unittest.TestCase):
         self.installed()
         self.assertVerdict(self.check(), "PASS", 0)
 
+    def test_links_an_earlier_version_made_for_pi_and_omp_are_removed(self):
+        self.installed()
+        roots = [self.home / ".pi" / "agent" / "skills", self.home / ".omp" / "agent" / "skills"]
+        for root in roots:
+            root.mkdir(parents=True)
+            make_link(self.clone / "skills" / "alpha", root / "alpha")
+            self.write("mine/SKILL.md", "---\nname: mine\ndescription: Own.\n---\nBody.\n", repo=root)
+        self.assertVerdict(self.check(), "FAIL", 1, "which lists them twice: alpha")
+        self.installed()
+        for root in roots:
+            self.assertFalse(os.path.lexists(root / "alpha"), root)
+            self.assertTrue((root / "mine" / "SKILL.md").is_file(), root)
+        self.assertVerdict(self.check(), "PASS", 0)
+
     def test_stale_soul_fails(self):
         self.installed()
         soul = self.home / ".hermes" / "SOUL.md"
@@ -259,6 +296,14 @@ class InstallTest(unittest.TestCase):
         self.installed()
         self.assertFalse(os.path.lexists(two))
         self.assertTrue((self.home / ".omp" / "agent" / "rules" / "one.md").is_file())
+        self.assertVerdict(self.check(), "PASS", 0)
+
+    def test_rule_the_installer_did_not_install_is_left_alone(self):
+        self.installed()
+        own = self.home / ".omp" / "agent" / "rules" / "own.md"
+        own.write_text(RULE, encoding="utf-8")
+        self.installed()
+        self.assertTrue(own.is_file())
         self.assertVerdict(self.check(), "PASS", 0)
 
     def install_muse_stub(self):
@@ -339,15 +384,19 @@ class InstallTest(unittest.TestCase):
         calls = log.read_text(encoding="utf-8").splitlines()
         self.assertIn("skills update alpha", calls)
         self.assertIn("skills enable alpha --scope user", calls)
+        self.assertTrue(any(c.startswith("skills install ") and c.endswith("alpha --scope user --force") for c in calls), calls)
 
+        self.write("skills/quiet/SKILL.md", "---\nname: quiet\ndescription: Manual.\ndisable-model-invocation: true\n---\nBody.\n")
         self.write("skills/beta/SKILL.md", "---\nname: beta\ndescription: New.\n---\nBody.\n")
         self.git("add", "-A")
         self.assertEqual(self.commit("beta", hooks=False).returncode, 0)
         self.assertVerdict(self.check(), "FAIL", 1, "1 commits behind")
         self.installed()
         self.assertTrue((muse_skills / "beta" / "SKILL.md").is_file())
-        self.assertTrue(any(c.startswith("skills install ") and c.endswith("beta --scope user")
-                            for c in log.read_text(encoding="utf-8").splitlines()))
+        calls = log.read_text(encoding="utf-8").splitlines()
+        self.assertTrue(any(c.startswith("skills install ") and c.endswith("beta --scope user") for c in calls), calls)
+        self.assertIn("skills enable quiet --scope user", calls)
+        self.assertNotIn("skills user-only quiet --scope user", calls)
         self.assertVerdict(self.check(), "PASS", 0)
 
     def test_skill_removed_from_the_repo_leaves_every_harness(self):
