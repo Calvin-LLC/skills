@@ -3,7 +3,7 @@
 
 Three parts, each run per model:
   reach    does the agent see SOUL.md, in a main session and in a subagent
-  loads    which skill it reads for each prompt, next to the one it should read
+  loads    which skill it reads first for each prompt, next to the one it should read
   behaves  with full tools in a throwaway repo: does the commit follow the rules,
            is the bug fixed, is the tree left clean
 
@@ -12,14 +12,23 @@ nothing. `behaves` runs get every tool, inside a copy of tests/fixtures/skill_ev
 under the OS temp directory. Every run costs model usage; --max-cost caps the total.
 
 usage: skill_eval.py [--parts reach,loads,behaves] [--models NAME=ID@THINKING,...]
-                     [--runs N] [--only KIND,...] [--no-rules] [--append FILE]
+                     [--runs N] [--only KIND,...] [--no-rules] [--no-skills] [--append FILE]
                      [--jobs N] [--max-cost USD] [--json PATH]
 
---no-rules  run without the always-loaded rules, the state before SOUL.md was linked
---append    add a file's text to the system prompt, to try a rule or routing line
+--no-rules   run without the always-loaded rules, the state before SOUL.md was linked
+--no-skills  run without any skill (omp --no-skills), so behaves shows what SOUL.md does alone;
+             loads has nothing to read then and is left out
+--append     add a file's text to the system prompt, to try a rule or routing line
+A loads run passes only when the first skill it reads is one the prompt calls for; a prompt
+that calls for none passes only when no skill is read.
 Skills come from this checkout's working tree, so an edit is tested before it is committed:
-the installed OMP plugin and the linked copies in ~/.agents and ~/.pi are switched off for
-each run. SOUL.md and rules/ come from the installed clone, which is the last commit on main.
+the installed OMP plugin, the linked copies in ~/.agents, the Pi, Claude and Codex user
+folders and any custom skill directory are switched off for each run.
+SOUL.md comes from the installed clone, which is the last commit on main. So does every rule
+already in rules/: OMP loads the installed copy from ~/.omp/agent/rules/ (priority 100) ahead of
+this checkout's copy, which -e offers at priority 90, so an edit to an existing rule is not
+tested until it is committed. A new rule file that is not committed has no installed copy, so
+it loads from the checkout through -e.
 The last line is the verdict: `OK skill_eval: ...` (exit 0) or `ERROR skill_eval: ...` (exit 2).
 """
 import argparse
@@ -27,6 +36,7 @@ import json
 import os
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -40,7 +50,8 @@ DEFAULT_MODELS = "sonnet=anthropic/claude-sonnet-5-5@high,deepseek=omniroute/cor
 READ_ONLY_TOOLS = "read,grep,glob,find,todo"
 SKILL = re.compile(r"skill://([\w-]+)|([\w-]+)[/\\]+SKILL\.md")
 SUBJECT = re.compile(r"^(feat|fix|docs|refactor|chore|test|perf)(\([\w./-]+\))?: \S.{0,70}$")
-CHECKOUT_ONLY = "skills:\n  enableAgentsUser: false\n  enablePiUser: false\n"
+CHECKOUT_ONLY = ("skills:\n  enableAgentsUser: false\n  enablePiUser: false\n  enableClaudeUser: false\n"
+                 "  enableCodexUser: false\n  customDirectories: []\n")
 GIT_ENV = {k: v for k, v in os.environ.items() if k not in ("GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_PREFIX")}
 
 spent = 0.0
@@ -78,6 +89,16 @@ def kill(proc):
         proc.kill()
 
 
+def remove_tree(path):
+    def retry_writable(func, target, _exc):
+        try:
+            os.chmod(target, stat.S_IWRITE)
+            func(target)
+        except OSError:
+            pass
+    shutil.rmtree(path, onerror=retry_writable)
+
+
 def omp(model, prompt, cwd, a, tools=None, stop_after=None, max_time=150, run_cost=0.6):
     """One headless run. Returns skills read, tool names, final text, cost."""
     global spent
@@ -87,15 +108,19 @@ def omp(model, prompt, cwd, a, tools=None, stop_after=None, max_time=150, run_co
         raise RuntimeError("omp is not on PATH")
     cmd = [exe, "-p", "--mode", "json", "--model", name, "--cwd", cwd, "--no-session", "--no-title",
            "--max-time", str(max_time), "--max-cost", str(run_cost), "--auto-approve",
-           "--no-extensions", "-e", ROOT, "--config", a.overlay]
+           "--no-extensions", "--wait-async", "--config", a.overlay]
     if thinking:
         cmd += ["--thinking", thinking]
     if tools == "":
         cmd += ["--no-tools"]
-    elif tools:
+    else:
+        cmd += ["-e", ROOT]
+    if tools:
         cmd += ["--tools", tools]
     if a.no_rules:
         cmd += ["--no-rules"]
+    if a.no_skills:
+        cmd += ["--no-skills"]
     if a.append_text:
         cmd += ["--append-system-prompt", a.append_text]
     cmd.append(prompt)
@@ -151,7 +176,7 @@ def run_reach(model, a):
         sub = omp(model, "Spawn exactly one subagent with the task tool. Give it this task word for word and nothing "
                   "else: '%s' Then reply with only the subagent's exact answer." % ask, work, a, tools="task", max_time=240)
     finally:
-        shutil.rmtree(work, True)
+        remove_tree(work)
     seen = lambda r: sum(1 for n in names if n.lower() in r["text"].lower())
     return [{"part": "reach", "id": "main session", "pass": seen(main) == len(names), "got": "%d of %d headings" % (seen(main), len(names)), "error": main["error"]},
             {"part": "reach", "id": "subagent", "pass": seen(sub) == len(names) and "task" in sub["tools"],
@@ -164,12 +189,12 @@ def run_load(model, case, a):
         repo = make_repo(work)
         r = omp(model, case["prompt"], repo, a, tools=READ_ONLY_TOOLS, stop_after=a.stop_after)
     finally:
-        shutil.rmtree(work, True)
+        remove_tree(work)
     want, fine = set(case["expect"]), set(case.get("also_ok", []))
-    got = set(r["skills"])
-    ok = (not got) if not want else bool(got & want)
-    return {"part": "loads", "id": case["id"], "kind": case["kind"], "want": sorted(want), "got": r["skills"],
-            "pass": ok, "extra": sorted(got - want - fine), "tools": r["tools"][:8], "error": r["error"]}
+    got = r["skills"]
+    ok = (bool(got) and got[0] in want) if want else not got
+    return {"part": "loads", "id": case["id"], "kind": case["kind"], "want": sorted(want), "got": got, "pass": ok,
+            "extra": [s for s in got if s not in want and s not in fine], "tools": r["tools"][:8], "error": r["error"]}
 
 
 def check_commit_rules(repo, before):
@@ -220,31 +245,42 @@ def run_behave(model, case, a):
         r = omp(model, case["prompt"], repo, a, max_time=300, run_cost=1.0)
         problems = CHECKS[case["check"]](repo, before)
     finally:
-        shutil.rmtree(work, True)
+        remove_tree(work)
     return {"part": "behaves", "id": case["id"], "pass": not problems, "got": "; ".join(problems) or "ok",
             "skills": r["skills"], "error": r["error"]}
 
 
 def main():
     ap = argparse.ArgumentParser(add_help=True)
-    ap.add_argument("--parts", default="reach,loads,behaves")
+    ap.add_argument("--parts", default="", help="reach,loads,behaves (loads is left out under --no-skills)")
     ap.add_argument("--models", default=DEFAULT_MODELS)
     ap.add_argument("--runs", type=int, default=3)
     ap.add_argument("--only", default="")
     ap.add_argument("--no-rules", action="store_true")
+    ap.add_argument("--no-skills", action="store_true", help="run without any skill")
     ap.add_argument("--append", default="")
     ap.add_argument("--jobs", type=int, default=4)
     ap.add_argument("--stop-after", type=int, default=6, help="tool calls before a loads run is stopped")
     ap.add_argument("--max-cost", type=float, default=15.0)
     ap.add_argument("--json", default="")
     a = ap.parse_args()
+    parts = (a.parts or ("reach,behaves" if a.no_skills else "reach,loads,behaves")).split(",")
+    if a.no_skills and "loads" in parts:
+        ap.error("--no-skills leaves loads nothing to read; use --parts reach,behaves")
     a.append_text = open(a.append, encoding="utf-8").read() if a.append else ""
-    a.overlay = os.path.join(tempfile.mkdtemp(prefix="skill-eval-"), "checkout-only.yml")
-    with open(a.overlay, "w", encoding="utf-8") as f:
-        f.write(CHECKOUT_ONLY)
+    overlay_dir = tempfile.mkdtemp(prefix="skill-eval-")
+    a.overlay = os.path.join(overlay_dir, "checkout-only.yml")
+    try:
+        with open(a.overlay, "w", encoding="utf-8") as f:
+            f.write(CHECKOUT_ONLY)
+        return evaluate(a, parts)
+    finally:
+        remove_tree(overlay_dir)
+
+
+def evaluate(a, parts):
     cases = json.load(open(os.path.join(FIXTURES, "cases.json"), encoding="utf-8"))
     only = {k for k in a.only.split(",") if k}
-    parts = a.parts.split(",")
     models = []
     for spec in a.models.split(","):
         label, rest = spec.split("=", 1)
@@ -288,7 +324,7 @@ def main():
         return 2
 
     setup = "without the always-loaded rules" if a.no_rules else "current setup"
-    setup += ", skills from this checkout"
+    setup += ", no skills" if a.no_skills else ", skills from this checkout"
     if a.append:
         setup += " + " + os.path.basename(a.append)
     print("setup: %s | models: %s | runs per prompt: %d" % (setup, ", ".join(l for l, _ in models), a.runs))
@@ -314,11 +350,18 @@ def main():
             key = (r["model"], r["part"], r["id"], json.dumps(r.get("got")), json.dumps(r.get("want", "")))
             seen[key] = seen.get(key, 0) + 1
         for (model, part, rid, got, want), n in seen.items():
-            detail = "read %s, wanted %s" % (got, want) if part == "loads" else got
+            detail = got
+            if part == "loads":
+                reads = json.loads(got)
+                detail = "first read %s, wanted %s" % (reads[0] if reads else "nothing", want)
+                if len(reads) > 1:
+                    detail += "; read in order: " + ", ".join(reads)
             print("  %-9s %-8s %-20s x%d  %s" % (model, part, rid, n, detail[:150]))
     extra = [r for r in rows if r.get("extra")]
     if extra:
-        print("\nskills read that the prompt did not call for: %d runs" % len(extra))
+        print("\nskills read that the prompt did not call for, per run:")
+        for r in extra:
+            print("  %-9s %-20s %s" % (r["model"], r["id"], ", ".join(r["extra"])))
     errors = len(failed)
     if failed:
         print("\nruns the provider failed (left out of the rates): %d, for example: %s" % (errors, (failed[0].get("error") or failed[0].get("got") or "")[:110]))
